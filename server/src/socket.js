@@ -19,6 +19,24 @@ export const initSocket = (server) => {
       socket.join(userId.toString());
     });
 
+    socket.on(
+  "join-story-analytics",
+  (storyId) => {
+    socket.join(
+      `story-analytics:${storyId}`
+    );
+  }
+);
+
+socket.on(
+  "leave-story-analytics",
+  (storyId) => {
+    socket.leave(
+      `story-analytics:${storyId}`
+    );
+  }
+);
+
     socket.on("join-conversation", (conversationId) => {
       socket.join(conversationId);
     });
@@ -68,5 +86,5 @@ export const initSocket = (server) => {
     });
   });
 };
-
+    
 export { io };

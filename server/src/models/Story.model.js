@@ -4,7 +4,13 @@ const storyMediaSchema = new mongoose.Schema(
   {
     url: {
       type: String,
-      required: false,
+      required: true,
+      trim: true,
+    },
+
+    publicId: {
+      type: String,
+      default: "",
     },
 
     type: {
@@ -12,6 +18,10 @@ const storyMediaSchema = new mongoose.Schema(
       enum: ["image", "video"],
       required: true,
     },
+
+    width: Number,
+    height: Number,
+    duration: Number,
   },
   {
     _id: true,
@@ -36,6 +46,20 @@ const storySchema = new mongoose.Schema(
       },
     },
 
+    privacy: {
+      type: String,
+      enum: ["public", "followers", "close_friends"],
+      default: "public",
+      index: true,
+    },
+
+    status: {
+      type: String,
+      enum: ["active", "archived", "deleted"],
+      default: "active",
+      index: true,
+    },
+
     createdAt: {
       type: Date,
       default: Date.now,
@@ -47,22 +71,71 @@ const storySchema = new mongoose.Schema(
       required: true,
       index: true,
     },
+
+    archivedAt: {
+      type: Date,
+      default: null,
+    },
+
+    deletedAt: {
+      type: Date,
+      default: null,
+    },
+
+    likesCount: {
+      type: Number,
+      default: 0,
+    },
+
+    repliesCount: {
+      type: Number,
+      default: 0,
+    },
+
+    viewsCount: {
+      type: Number,
+      default: 0,
+    },
+
+    uniqueViewersCount: {
+      type: Number,
+      default: 0,
+    },
+
+    completedViewsCount: {
+      type: Number,
+      default: 0,
+    },
   },
   {
-    timestamps: false,
+    timestamps: true,
   }
 );
 
 /*
- * MongoDB TTL index.
- *
- * MongoDB automatically removes the story when expiresAt is reached.
+ * Active story lookup.
  */
-storySchema.index(
-  { expiresAt: 1 },
-  { expireAfterSeconds: 0 }
-);
+storySchema.index({
+  status: 1,
+  expiresAt: 1,
+});
 
-const Story = mongoose.model("Story", storySchema);
+/*
+ * Feed lookup.
+ */
+storySchema.index({
+  user: 1,
+  status: 1,
+  createdAt: -1,
+});
 
-export default Story;
+/*
+ * Privacy queries.
+ */
+storySchema.index({
+  privacy: 1,
+  status: 1,
+  createdAt: -1,
+});
+
+export default mongoose.model("Story", storySchema);

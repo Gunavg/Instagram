@@ -22,7 +22,12 @@ export default function CreateStory({
   onCreated,
 }: CreateStoryProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-
+  const [privacy, setPrivacy] =
+  useState<
+    "public" |
+    "followers" |
+    "close_friends"
+  >("public");
   const [media, setMedia] = useState<SelectedMedia[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -65,6 +70,7 @@ export default function CreateStory({
       return;
     }
 
+     
     const newMedia: SelectedMedia[] = selectedFiles.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
@@ -191,7 +197,30 @@ export default function CreateStory({
                   className="text-ig-text"
                 />
               </div>
+              <select
+  value={privacy}
+  onChange={(event) =>
+    setPrivacy(
+      event.target.value as
+        | "public"
+        | "followers"
+        | "close_friends"
+    )
+  }
+  className="w-full mt-3 px-3 py-2 rounded-lg border border-ig-border bg-ig-surface text-ig-text"
+>
+  <option value="public">
+    Public
+  </option>
 
+  <option value="followers">
+    Followers Only
+  </option>
+
+  <option value="close_friends">
+    Close Friends
+  </option>
+</select>
               <div className="text-center">
                 <p className="font-semibold text-ig-text">
                   Add to your story
