@@ -1,38 +1,90 @@
 import multer from "multer";
+import cloudinary from "../config/cloudinary.js";
+import streamifier from "streamifier";
 
 const storage = multer.memoryStorage();
 
-const fileFilter = (req, file, cb) => {
-  const allowedTypes = [
-    "image/jpeg",
-    "image/jpg",
-    "image/png",
-    "image/webp",
-    "image/gif",
-    "video/mp4",
-    "video/webm",
-    "video/quicktime",
-  ];
+const allowedTypes = [
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/webm",
+  "video/quicktime",
+];
 
-  if (allowedTypes.includes(file.mimetype)) {
+const fileFilter = (
+  req,
+  file,
+  cb
+) => {
+  if (
+    allowedTypes.includes(
+      file.mimetype
+    )
+  ) {
     cb(null, true);
   } else {
     cb(
       new Error(
-        "Only image and video files are allowed for stories",
+        "Only image and video files are allowed"
       ),
-      false,
+      false
     );
   }
 };
 
-const storyUpload = multer({
+const upload = multer({
   storage,
   fileFilter,
   limits: {
     files: 10,
-    fileSize: 50 * 1024 * 1024,
+    fileSize:
+      50 * 1024 * 1024,
   },
 });
 
-export default storyUpload;
+export const uploadToCloudinary =
+  (file) =>
+    new Promise(
+      (resolve, reject) => {
+        const resourceType =
+          file.mimetype.startsWith(
+            "video/"
+          )
+            ? "video"
+            : "image";
+
+        const stream =
+          cloudinary.uploader.upload_stream(
+            {
+              folder:
+                "instagram/stories",
+              resource_type:
+                resourceType,
+            },
+            (
+              error,
+              result
+            ) => {
+              if (error) {
+                reject(error);
+              } else {
+                resolve(
+                  result
+                );
+              }
+            }
+          );
+
+        streamifier
+          .createReadStream(
+            file.buffer
+          )
+          .pipe(stream);
+      }
+    );
+
+export default upload;

@@ -1,24 +1,42 @@
 import express from "express";
-import { protect } from "../middleware/auth.middleware.js";
+
 import {
   createStory,
   getStories,
   deleteStory,
 } from "../controllers/story.controller.js";
+
+import {
+  recordStoryView,
+  getStoryAnalytics,
+} from "../controllers/storyAnalytics.controller.js";
+
+import {
+  reactToStory,
+  removeStoryReaction,
+} from "../controllers/storyReaction.controller.js";
+
+import {
+  replyToStory,
+} from "../controllers/storyReply.controller.js";
+
 import upload from "../middleware/storyUpload.middleware.js";
+
+import { protect } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 /*
- * Get active stories
+ * Active stories.
  */
-router.get("/", protect, getStories);
+router.get(
+  "/",
+  protect,
+  getStories
+);
 
 /*
- * Create story
- *
- * Change "media" to the field name already used
- * by your CreateStory FormData if different.
+ * Create story.
  */
 router.post(
   "/",
@@ -28,8 +46,57 @@ router.post(
 );
 
 /*
- * Delete story
+ * Delete own story.
  */
-router.delete("/:id", protect, deleteStory);
+router.delete(
+  "/:id",
+  protect,
+  deleteStory
+);
+
+/*
+ * Record view.
+ */
+router.post(
+  "/:storyId/view",
+  protect,
+  recordStoryView
+);
+
+/*
+ * Analytics dashboard.
+ */
+router.get(
+  "/:storyId/analytics",
+  protect,
+  getStoryAnalytics
+);
+
+/*
+ * Reaction.
+ */
+router.post(
+  "/:storyId/reaction",
+  protect,
+  reactToStory
+);
+
+/*
+ * Remove reaction.
+ */
+router.delete(
+  "/:storyId/reaction",
+  protect,
+  removeStoryReaction
+);
+
+/*
+ * Reply.
+ */
+router.post(
+  "/:storyId/reply",
+  protect,
+  replyToStory
+);
 
 export default router;

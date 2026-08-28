@@ -4,37 +4,45 @@ const expireStories = async () => {
   try {
     const now = new Date();
 
-    const result = await Story.updateMany(
-      {
-        status: "active",
-        expiresAt: { $lte: now },
-      },
-      {
-        $set: {
-          status: "expired",
+    const result =
+      await Story.updateMany(
+        {
+          status: "active",
+          expiresAt: {
+            $lte: now,
+          },
         },
-      },
-    );
+        {
+          $set: {
+            status: "archived",
+            archivedAt: now,
+          },
+        }
+      );
 
     if (result.modifiedCount > 0) {
       console.log(
-        `⏰ Expired ${result.modifiedCount} story/stories`,
+        `⏰ Archived ${result.modifiedCount} expired story/stories`
       );
     }
   } catch (error) {
     console.error(
       "Story expiration job error:",
-      error.message,
+      error.message
     );
   }
 };
 
-export const startStoryExpirationJob = () => {
-  // Run immediately when the server starts.
-  expireStories();
+export const startStoryExpirationJob =
+  () => {
+    expireStories();
 
-  // Check every minute.
-  setInterval(expireStories, 60 * 1000);
+    setInterval(
+      expireStories,
+      60 * 1000
+    );
 
-  console.log("⏰ Story expiration job started");
-};
+    console.log(
+      "⏰ Story expiration job started"
+    );
+  };

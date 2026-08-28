@@ -8,7 +8,7 @@ import {
   Send,
   X,
 } from "lucide-react";
-
+import axiosInstance from "@/lib/axios";
 import {
   useCallback,
   useEffect,
@@ -16,6 +16,26 @@ import {
   useState,
 } from "react";
 
+const recordView = async (
+  storyId: string,
+  mediaIndex: number,
+  completed: boolean
+) => {
+  try {
+    await axiosInstance.post(
+      `/api/stories/${storyId}/view`,
+      {
+        mediaIndex,
+        completed,
+      }
+    );
+  } catch (error) {
+    console.error(
+      "Failed to record story view:",
+      error
+    );
+  }
+};
 
 const STORY_DURATION = 5000;
 
@@ -231,6 +251,20 @@ const StoryViewer = ({
     setLiked(false);
   };
 
+  useEffect(() => {
+  if (!currentStory?._id) {
+    return;
+  }
+
+  recordView(
+    currentStory._id,
+    storyIndex,
+    true
+  );
+}, [
+  currentStory?._id,
+  storyIndex,
+]);
 
   /* =========================================================
      24-HOUR STORY EXPIRATION

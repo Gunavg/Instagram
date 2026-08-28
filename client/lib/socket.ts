@@ -1,8 +1,13 @@
 import { io } from "socket.io-client";
 
-const URL = process.env.NEXT_PUBLIC_BACKEND_URL;
+const SOCKET_URL =
+  process.env.NEXT_PUBLIC_SOCKET_URL ||
+  "http://localhost:5000";
 
-export const socket = io(URL, {
-  autoConnect: false,
-  transports: ["websocket"],
-});
+export const socket = io(
+  SOCKET_URL,
+  {
+    autoConnect: true,
+    withCredentials: true,
+  }
+);
