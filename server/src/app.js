@@ -3,6 +3,7 @@ import dotenv from "dotenv";
 import cors from "cors";
 import authRoutes from "./routes/auth.routes.js";
 import postRoutes from "./routes/post.routes.js";
+import storyRoutes from "./routes/story.routes.js";
 import followRoutes from "./routes/follow.routes.js";
 import likesRoutes from "./routes/like.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
@@ -24,6 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/stories", storyRoutes);
 app.use("/api/follow", followRoutes);
 app.use("/api/likes", likesRoutes);
 app.use("/api/ai", aiRoutes);
