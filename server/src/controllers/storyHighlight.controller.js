@@ -127,7 +127,7 @@ export const addStoryToHighlight =
       }
 
       const highlight =
-        await Story.findOne({
+        await StoryHighlight.findOne({
           _id: highlightId,
           owner: req.user._id,
         });
