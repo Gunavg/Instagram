@@ -5,9 +5,14 @@ import Message from "./models/message.model.js";
 let io;
 
 export const initSocket = (server) => {
+  const allowedOrigins = [
+    process.env.CLIENT_URL,
+    "http://localhost:3000",
+  ].filter(Boolean);
+
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL,
+      origin: allowedOrigins,
       credentials: true,
     },
   });
@@ -16,36 +21,25 @@ export const initSocket = (server) => {
     console.log("Connected:", socket.id);
 
     socket.on("setup", (userId) => {
-      socket.join(userId.toString());
+      if (userId) socket.join(userId.toString());
     });
 
-    socket.on(
-  "join-story-analytics",
-  (storyId) => {
-    socket.join(
-      `story-analytics:${storyId}`
-    );
-  }
-);
+    socket.on("join-story-analytics", (storyId) => {
+      if (storyId) socket.join(`story-analytics:${storyId}`);
+    });
 
-socket.on(
-  "leave-story-analytics",
-  (storyId) => {
-    socket.leave(
-      `story-analytics:${storyId}`
-    );
-  }
-);
+    socket.on("leave-story-analytics", (storyId) => {
+      if (storyId) socket.leave(`story-analytics:${storyId}`);
+    });
 
     socket.on("join-conversation", (conversationId) => {
-      socket.join(conversationId);
+      if (conversationId) socket.join(conversationId);
     });
 
     socket.on("leave-conversation", (conversationId) => {
-      socket.leave(conversationId);
+      if (conversationId) socket.leave(conversationId);
     });
 
-    // SEND MESSAGE
     socket.on("send-message", async (data) => {
       try {
         const { conversationId, senderId, text, media } = data;
@@ -64,12 +58,12 @@ socket.on(
 
         const populatedMessage = await Message.findById(message._id).populate(
           "sender",
-          "username fullName profilePicture",
+          "username fullName profilePicture"
         );
 
         io.to(conversationId).emit("receive-message", populatedMessage);
-      } catch (err) {
-        console.log(err);
+      } catch (error) {
+        console.error("Socket message error:", error.message);
       }
     });
 
@@ -82,9 +76,9 @@ socket.on(
     });
 
     socket.on("disconnect", () => {
-      console.log("Disconnected");
+      console.log("Disconnected:", socket.id);
     });
   });
 };
-    
+
 export { io };
