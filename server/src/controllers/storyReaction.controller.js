@@ -2,24 +2,31 @@ import Story from "../models/Story.model.js";
 import StoryReaction from "../models/StoryReaction.model.js";
 import { io } from "../socket.js";
 
-export const reactToStory = async (
-  req,
-  res
-) => {
+const emitReactionAnalytics = async (storyId) => {
+  const updatedStory = await Story.findById(storyId).select(
+    "likesCount repliesCount viewsCount uniqueViewersCount completedViewsCount"
+  );
+
+  if (!updatedStory) return;
+
+  io?.to(`story-analytics:${storyId}`).emit(
+    "story-analytics-updated",
+    {
+      storyId: storyId.toString(),
+      likesCount: updatedStory.likesCount,
+      repliesCount: updatedStory.repliesCount,
+      viewsCount: updatedStory.viewsCount,
+      uniqueViewersCount: updatedStory.uniqueViewersCount,
+      completedViewsCount: updatedStory.completedViewsCount,
+    }
+  );
+};
+
+export const reactToStory = async (req, res) => {
   try {
     const { storyId } = req.params;
-
-    const reaction =
-      req.body?.reaction || "like";
-
-    const allowed = [
-      "like",
-      "love",
-      "haha",
-      "wow",
-      "sad",
-      "angry",
-    ];
+    const reaction = req.body?.reaction || "like";
+    const allowed = ["like", "love", "haha", "wow", "sad", "angry"];
 
     if (!allowed.includes(reaction)) {
       return res.status(400).json({
@@ -31,9 +38,7 @@ export const reactToStory = async (
     const story = await Story.findOne({
       _id: storyId,
       status: "active",
-      expiresAt: {
-        $gt: new Date(),
-      },
+      expiresAt: { $gt: new Date() },
     });
 
     if (!story) {
@@ -43,11 +48,10 @@ export const reactToStory = async (
       });
     }
 
-    const existing =
-      await StoryReaction.findOne({
-        story: storyId,
-        user: req.user._id,
-      });
+    const existing = await StoryReaction.findOne({
+      story: storyId,
+      user: req.user._id,
+    });
 
     if (existing) {
       existing.reaction = reaction;
@@ -59,67 +63,34 @@ export const reactToStory = async (
         reaction,
       });
 
-      await Story.findByIdAndUpdate(
-        storyId,
-        {
-          $inc: {
-            likesCount: 1,
-          },
-        }
-      );
+      await Story.findByIdAndUpdate(storyId, {
+        $inc: { likesCount: 1 },
+      });
     }
 
-    const updatedStory =
-      await Story.findById(storyId).select(
-        "likesCount repliesCount viewsCount uniqueViewersCount completedViewsCount"
-      );
-
-    io?.to(`story-analytics:${storyId}`).emit(
-      "story-analytics-updated",
-      {
-        storyId,
-        likesCount:
-          updatedStory.likesCount,
-        repliesCount:
-          updatedStory.repliesCount,
-        viewsCount:
-          updatedStory.viewsCount,
-        uniqueViewersCount:
-          updatedStory.uniqueViewersCount,
-        completedViewsCount:
-          updatedStory.completedViewsCount,
-      }
-    );
+    await emitReactionAnalytics(storyId);
 
     return res.status(200).json({
       success: true,
       reaction,
     });
   } catch (error) {
-    console.error(
-      "Story reaction error:",
-      error
-    );
-
+    console.error("Story reaction error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to react to story",
     });
   }
 };
 
-export const removeStoryReaction = async (
-  req,
-  res
-) => {
+export const removeStoryReaction = async (req, res) => {
   try {
     const { storyId } = req.params;
 
-    const deleted =
-      await StoryReaction.findOneAndDelete({
-        story: storyId,
-        user: req.user._id,
-      });
+    const deleted = await StoryReaction.findOneAndDelete({
+      story: storyId,
+      user: req.user._id,
+    });
 
     if (!deleted) {
       return res.status(404).json({
@@ -128,22 +99,20 @@ export const removeStoryReaction = async (
       });
     }
 
-    await Story.findByIdAndUpdate(
-      storyId,
-      {
-        $inc: {
-          likesCount: -1,
-        },
-      }
-    );
+    await Story.findByIdAndUpdate(storyId, {
+      $inc: { likesCount: -1 },
+    });
+
+    await emitReactionAnalytics(storyId);
 
     return res.status(200).json({
       success: true,
     });
   } catch (error) {
+    console.error("Remove story reaction error:", error);
     return res.status(500).json({
       success: false,
-      message: error.message,
+      message: error.message || "Failed to remove reaction",
     });
   }
 };
