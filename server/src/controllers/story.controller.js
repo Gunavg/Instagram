@@ -4,28 +4,25 @@ import CloseFriend from "../models/CloseFriend.model.js";
 import { uploadToCloudinary } from "../middleware/storyUpload.middleware.js";
 
 const canViewStory = async (story, viewerId) => {
-  if (story.user.toString() === viewerId.toString()) {
-    return true;
-  }
-
-  if (story.privacy === "public") {
-    return true;
-  }
+  if (story.user.toString() === viewerId.toString()) return true;
+  if (story.privacy === "public") return true;
 
   if (story.privacy === "followers") {
-    const follow = await Follow.exists({
-      follower: viewerId,
-      following: story.user,
-    });
-    return Boolean(follow);
+    return Boolean(
+      await Follow.exists({
+        follower: viewerId,
+        following: story.user,
+      })
+    );
   }
 
   if (story.privacy === "close_friends") {
-    const closeFriend = await CloseFriend.exists({
-      owner: story.user,
-      friend: viewerId,
-    });
-    return Boolean(closeFriend);
+    return Boolean(
+      await CloseFriend.exists({
+        owner: story.user,
+        friend: viewerId,
+      })
+    );
   }
 
   return false;
@@ -34,10 +31,7 @@ const canViewStory = async (story, viewerId) => {
 export const createStory = async (req, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-      });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
     if (!req.files || req.files.length === 0) {
@@ -113,17 +107,12 @@ export const createStory = async (req, res) => {
 export const getStories = async (req, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-      });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
-
-    const now = new Date();
 
     const stories = await Story.find({
       status: "active",
-      expiresAt: { $gt: now },
+      expiresAt: { $gt: new Date() },
     })
       .populate("user", "_id username fullName profilePicture")
       .sort({ createdAt: -1 })
@@ -137,10 +126,7 @@ export const getStories = async (req, res) => {
       }
     }
 
-    return res.status(200).json({
-      success: true,
-      stories: visibleStories,
-    });
+    return res.status(200).json({ success: true, stories: visibleStories });
   } catch (error) {
     console.error("Get stories error:", error);
     return res.status(500).json({
@@ -150,13 +136,40 @@ export const getStories = async (req, res) => {
   }
 };
 
+/*
+ * GET MY ARCHIVED STORIES
+ * Used by the Highlights UI. Analytics are retained because archived
+ * stories remain in MongoDB instead of being deleted.
+ */
+export const getMyArchivedStories = async (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, message: "Unauthorized" });
+    }
+
+    const stories = await Story.find({
+      user: req.user._id,
+      status: "archived",
+    })
+      .select("_id media createdAt expiresAt status")
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+
+    return res.status(200).json({ success: true, stories });
+  } catch (error) {
+    console.error("Get archived stories error:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to fetch archived stories",
+    });
+  }
+};
+
 export const deleteStory = async (req, res) => {
   try {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-      });
+      return res.status(401).json({ success: false, message: "Unauthorized" });
     }
 
     const story = await Story.findOne({
