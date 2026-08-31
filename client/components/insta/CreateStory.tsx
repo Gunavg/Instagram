@@ -22,19 +22,14 @@ export default function CreateStory({
   onCreated,
 }: CreateStoryProps) {
   const inputRef = useRef<HTMLInputElement>(null);
-  const [privacy, setPrivacy] =
-  useState<
-    "public" |
-    "followers" |
-    "close_friends"
+  const [privacy, setPrivacy] = useState<
+    "public" | "followers" | "close_friends"
   >("public");
   const [media, setMedia] = useState<SelectedMedia[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
-  if (!open) {
-    return null;
-  }
+  if (!open) return null;
 
   const handleFiles = (files: FileList | null) => {
     if (!files) return;
@@ -42,7 +37,6 @@ export default function CreateStory({
     setError("");
 
     const selectedFiles = Array.from(files);
-
     const allowedTypes = [
       "image/jpeg",
       "image/jpg",
@@ -55,13 +49,11 @@ export default function CreateStory({
     ];
 
     const invalidFile = selectedFiles.find(
-      (file) => !allowedTypes.includes(file.type),
+      (file) => !allowedTypes.includes(file.type)
     );
 
     if (invalidFile) {
-      setError(
-        `${invalidFile.name} is not a supported image or video file.`,
-      );
+      setError(`${invalidFile.name} is not a supported image or video file.`);
       return;
     }
 
@@ -70,27 +62,20 @@ export default function CreateStory({
       return;
     }
 
-     
     const newMedia: SelectedMedia[] = selectedFiles.map((file) => ({
       file,
       preview: URL.createObjectURL(file),
-      type: file.type.startsWith("video/")
-        ? "video"
-        : "image",
+      type: file.type.startsWith("video/") ? "video" : "image",
     }));
 
-    setMedia((prev) => [...prev, ...newMedia]);
+    setMedia((previous) => [...previous, ...newMedia]);
   };
 
   const removeMedia = (index: number) => {
-    setMedia((prev) => {
-      const item = prev[index];
-
-      if (item) {
-        URL.revokeObjectURL(item.preview);
-      }
-
-      return prev.filter((_, i) => i !== index);
+    setMedia((previous) => {
+      const item = previous[index];
+      if (item) URL.revokeObjectURL(item.preview);
+      return previous.filter((_, i) => i !== index);
     });
   };
 
@@ -110,41 +95,33 @@ export default function CreateStory({
         formData.append("media", item.file);
       });
 
-      /*
-       * IMPORTANT:
-       * Send the story only ONCE.
-       *
-       * The backend middleware receives the files,
-       * uploads them, and creates the story.
-       */
-      const response =await axiosInstance.post("/api/stories", formData, {
-  headers: {
-    "Content-Type": "multipart/form-data",
-  },
-});
+      // IMPORTANT: privacy must also be sent to the backend.
+      formData.append("privacy", privacy);
+
+      // Do not manually set Content-Type. Axios/browser adds the
+      // correct multipart boundary automatically for FormData.
+      const response = await axiosInstance.post(
+        "/api/stories",
+        formData
+      );
 
       if (!response.data?.success) {
         throw new Error(
-          response.data?.message || "Story creation failed",
+          response.data?.message || "Story creation failed"
         );
       }
 
-      media.forEach((item) => {
-        URL.revokeObjectURL(item.preview);
-      });
-
+      media.forEach((item) => URL.revokeObjectURL(item.preview));
       setMedia([]);
 
       await onCreated?.();
-
       onClose();
     } catch (error: any) {
       console.error("Story creation error:", error);
-
       setError(
         error?.response?.data?.message ||
           error?.message ||
-          "Failed to create story. Please try again.",
+          "Failed to create story. Please try again."
       );
     } finally {
       setLoading(false);
@@ -154,25 +131,17 @@ export default function CreateStory({
   const handleClose = () => {
     if (loading) return;
 
-    media.forEach((item) => {
-      URL.revokeObjectURL(item.preview);
-    });
-
+    media.forEach((item) => URL.revokeObjectURL(item.preview));
     setMedia([]);
     setError("");
-
     onClose();
   };
 
   return (
     <div className="fixed inset-0 z-100 bg-black/60 flex items-center justify-center p-4">
       <div className="w-full max-w-lg bg-ig-surface rounded-xl overflow-hidden shadow-xl">
-        {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-ig-border">
-          <h2 className="font-semibold text-ig-text">
-            Create Story
-          </h2>
-
+          <h2 className="font-semibold text-ig-text">Create Story</h2>
           <button
             onClick={handleClose}
             disabled={loading}
@@ -183,8 +152,30 @@ export default function CreateStory({
           </button>
         </div>
 
-        {/* Upload area */}
         <div className="p-4">
+          <div className="mb-4">
+            <label className="block text-sm font-semibold text-ig-text mb-2">
+              Privacy
+            </label>
+            <select
+              value={privacy}
+              onChange={(event) =>
+                setPrivacy(
+                  event.target.value as
+                    | "public"
+                    | "followers"
+                    | "close_friends"
+                )
+              }
+              className="w-full px-3 py-2 rounded-lg border border-ig-border bg-ig-surface text-ig-text"
+              disabled={loading}
+            >
+              <option value="public">Public</option>
+              <option value="followers">Followers Only</option>
+              <option value="close_friends">Close Friends</option>
+            </select>
+          </div>
+
           {media.length === 0 ? (
             <button
               type="button"
@@ -192,48 +183,17 @@ export default function CreateStory({
               className="w-full h-64 border-2 border-dashed border-ig-border rounded-xl flex flex-col items-center justify-center gap-3 hover:bg-ig-hover transition-colors"
             >
               <div className="w-14 h-14 rounded-full bg-ig-hover flex items-center justify-center">
-                <Upload
-                  size={26}
-                  className="text-ig-text"
-                />
+                <Upload size={26} className="text-ig-text" />
               </div>
-              <select
-  value={privacy}
-  onChange={(event) =>
-    setPrivacy(
-      event.target.value as
-        | "public"
-        | "followers"
-        | "close_friends"
-    )
-  }
-  className="w-full mt-3 px-3 py-2 rounded-lg border border-ig-border bg-ig-surface text-ig-text"
->
-  <option value="public">
-    Public
-  </option>
-
-  <option value="followers">
-    Followers Only
-  </option>
-
-  <option value="close_friends">
-    Close Friends
-  </option>
-</select>
               <div className="text-center">
-                <p className="font-semibold text-ig-text">
-                  Add to your story
-                </p>
-
+                <p className="font-semibold text-ig-text">Add to your story</p>
                 <p className="text-sm text-ig-secondary mt-1">
-                  Select images or videos
+                  Select images or videos (up to 10)
                 </p>
               </div>
             </button>
           ) : (
             <div>
-              {/* Preview grid */}
               <div className="grid grid-cols-2 gap-3">
                 {media.map((item, index) => (
                   <div
@@ -252,45 +212,29 @@ export default function CreateStory({
                         className="w-full h-full object-cover"
                         muted
                         playsInline
-                        controls={false}
                       />
                     )}
 
-                    {/* Remove */}
                     <button
                       type="button"
                       onClick={() => removeMedia(index)}
                       className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/70 flex items-center justify-center"
                     >
-                      <X
-                        size={16}
-                        className="text-white"
-                      />
+                      <X size={16} className="text-white" />
                     </button>
 
-                    {/* Media type */}
                     <div className="absolute bottom-2 left-2 px-2 py-1 rounded-md bg-black/60 flex items-center gap-1">
                       {item.type === "image" ? (
-                        <ImageIcon
-                          size={13}
-                          className="text-white"
-                        />
+                        <ImageIcon size={13} className="text-white" />
                       ) : (
-                        <Video
-                          size={13}
-                          className="text-white"
-                        />
+                        <Video size={13} className="text-white" />
                       )}
-
-                      <span className="text-xs text-white">
-                        {item.type}
-                      </span>
+                      <span className="text-xs text-white">{item.type}</span>
                     </div>
                   </div>
                 ))}
               </div>
 
-              {/* Add more */}
               {media.length < 10 && (
                 <button
                   type="button"
@@ -303,7 +247,6 @@ export default function CreateStory({
             </div>
           )}
 
-          {/* File input */}
           <input
             ref={inputRef}
             type="file"
@@ -312,21 +255,13 @@ export default function CreateStory({
             className="hidden"
             onChange={(event) => {
               handleFiles(event.target.files);
-
-              // Allows selecting the same file again.
               event.target.value = "";
             }}
           />
 
-          {/* Error */}
-          {error && (
-            <p className="mt-3 text-sm text-red-500">
-              {error}
-            </p>
-          )}
+          {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
         </div>
 
-        {/* Footer */}
         <div className="px-4 py-3 border-t border-ig-border">
           <button
             type="button"
