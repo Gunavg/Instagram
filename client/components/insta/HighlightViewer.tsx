@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ChevronLeft, ChevronRight, X, Play } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Play, Eye } from "lucide-react";
 
 type StoryMedia = {
   _id?: string;
@@ -14,17 +14,33 @@ type HighlightStory = {
   media: StoryMedia[];
   createdAt: string;
   expiresAt: string;
+  viewsCount?: number;
+  uniqueViewersCount?: number;
 };
 
 interface Props {
   title: string;
   stories: HighlightStory[];
+  totalViews?: number;
+  uniqueViewers?: number;
   onClose: () => void;
 }
 
 const MEDIA_DURATION = 5000;
 
-export default function HighlightViewer({ title, stories, onClose }: Props) {
+const formatCount = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(Math.max(0, Number(value) || 0));
+
+export default function HighlightViewer({
+  title,
+  stories,
+  totalViews = 0,
+  uniqueViewers = 0,
+  onClose,
+}: Props) {
   const [storyIndex, setStoryIndex] = useState(0);
   const [mediaIndex, setMediaIndex] = useState(0);
 
@@ -63,7 +79,9 @@ export default function HighlightViewer({ title, stories, onClose }: Props) {
       const previousStory = stories[previousStoryIndex];
 
       setStoryIndex(previousStoryIndex);
-      setMediaIndex(Math.max(0, (previousStory?.media?.length || 1) - 1));
+      setMediaIndex(
+        Math.max(0, (previousStory?.media?.length || 1) - 1)
+      );
     }
   };
 
@@ -97,20 +115,46 @@ export default function HighlightViewer({ title, stories, onClose }: Props) {
       <div className="absolute top-0 left-0 right-0 z-20 p-4">
         <div className="flex gap-1 mb-3">
           {media.map((_, index) => (
-            <div key={index} className="h-1 flex-1 rounded-full bg-white/30 overflow-hidden">
+            <div
+              key={index}
+              className="h-1 flex-1 rounded-full bg-white/30 overflow-hidden"
+            >
               <div
-                className={`h-full bg-white ${index < mediaIndex ? "w-full" : index === mediaIndex ? "w-full" : "w-0"}`}
+                className={`h-full bg-white ${
+                  index <= mediaIndex ? "w-full" : "w-0"
+                }`}
               />
             </div>
           ))}
         </div>
 
-        <div className="flex items-center justify-between text-white">
+        <div className="flex items-start justify-between text-white gap-4">
           <div>
             <p className="font-semibold">{title}</p>
-            <p className="text-xs text-white/70">Story {storyIndex + 1} of {stories.length}</p>
+            <p className="text-xs text-white/70">
+              Story {storyIndex + 1} of {stories.length}
+            </p>
+
+            <div className="mt-1 flex items-center gap-3 text-xs text-white/80">
+              <span className="inline-flex items-center gap-1">
+                <Eye size={13} />
+                {formatCount(story.viewsCount || 0)} views
+              </span>
+              <span>
+                {formatCount(story.uniqueViewersCount || 0)} unique
+              </span>
+            </div>
+
+            <p className="text-[11px] text-white/60 mt-1">
+              Highlight: {formatCount(totalViews)} views · {formatCount(uniqueViewers)} unique viewers
+            </p>
           </div>
-          <button type="button" onClick={onClose} aria-label="Close highlight">
+
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close highlight"
+          >
             <X size={28} />
           </button>
         </div>
