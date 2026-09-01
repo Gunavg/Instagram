@@ -1035,81 +1035,90 @@ export default function StoryViewer({
         ================================================== */}
 
         <div className="absolute top-7 left-3 right-3 z-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            {/* Profile image */}
-            <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
-              {profileImage ? (
-                <img
-                  src={
-                    profileImage
-                  }
-                  alt=""
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <div className="w-full h-full bg-gray-500" />
-              )}
-            </div>
+  <div className="flex items-center gap-2">
+    {/* Profile image */}
+    <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
+      {profileImage ? (
+        <img
+          src={profileImage}
+          alt=""
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <div className="w-full h-full bg-gray-500" />
+      )}
+    </div>
 
-            {/* Username */}
-            <span className="text-white text-sm font-semibold">
-              {
-                currentGroup
-                  .user
-                  .username
-              }
-            </span>
+    {/* Username */}
+    <span className="text-white text-sm font-semibold">
+      {currentGroup.user.username}
+    </span>
 
-            {/* Story age */}
-            <span className="text-white/70 text-xs">
-              · {getStoryAge}
-            </span>
-          </div>
+    {/* Story age */}
+    <span className="text-white/70 text-xs">
+      · {getStoryAge}
+    </span>
+  </div>
 
-          {/* Header actions */}
-          <div className="flex items-center gap-2">
-            {isOwner && (
-              <>
-                {/* Analytics */}
-                <button
-                  type="button"
-                  onClick={() =>
-                    setShowAnalytics(
-                      true
-                    )
-                  }
-                  className="text-white p-2"
-                  aria-label="Story analytics"
-                >
-                  <BarChart3
-                    size={20}
-                  />
-                </button>
+  {/* Header actions */}
+  <div className="flex items-center gap-2">
+    {isOwner && (
+      <>
+        {/* Story views */}
+        <div
+          className="flex items-center gap-1.5
+                     text-white text-xs
+                     bg-black/40
+                     rounded-full
+                     px-3 py-1.5"
+        >
+          <Eye size={14} />
 
-                {/* Delete */}
-                <button
-                  type="button"
-                  onClick={
-                    deleteStory
-                  }
-                  className="text-white text-xs px-2 py-1 rounded bg-black/40"
-                >
-                  Delete
-                </button>
-              </>
+          <span>
+            {Number(
+              currentStory.viewsCount ?? 0
             )}
+          </span>
 
-            {/* Close */}
-            <button
-              type="button"
-              onClick={onClose}
-              className="text-white p-2"
-              aria-label="Close story"
-            >
-              <X size={24} />
-            </button>
-          </div>
+          <span>
+            views
+          </span>
         </div>
+
+        {/* Analytics */}
+        <button
+          type="button"
+          onClick={() =>
+            setShowAnalytics(true)
+          }
+          className="text-white p-2"
+          aria-label="Story analytics"
+        >
+          <BarChart3 size={20} />
+        </button>
+
+        {/* Delete */}
+        <button
+          type="button"
+          onClick={deleteStory}
+          className="text-white text-xs px-2 py-1 rounded bg-black/40"
+        >
+          Delete
+        </button>
+      </>
+    )}
+
+    {/* Close */}
+    <button
+      type="button"
+      onClick={onClose}
+      className="text-white p-2"
+      aria-label="Close story"
+    >
+      <X size={24} />
+    </button>
+  </div>
+</div>
 
         {/* ==================================================
             LEFT CLICK AREA
