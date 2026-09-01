@@ -8,301 +8,936 @@ import {
   X,
   BarChart3,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+
+import type { ReactNode } from "react";
+
 import axiosInstance from "@/lib/axios";
 import { currentUser } from "@/lib/mock-data";
+
 import StoryAnalytics from "./StoryAnalytics";
+
+/*
+ * ============================================================
+ * STORY SETTINGS
+ * ============================================================
+ */
 
 const STORY_DURATION = 5000;
 
+/*
+ * ============================================================
+ * TYPES
+ * ============================================================
+ */
+
 type StoryMedia = {
   _id?: string;
+
   url: string;
+
   type: "image" | "video";
+
   duration?: number;
 };
 
 type StoryViewerUser = {
   _id: string;
+
   username: string;
+
   fullName?: string;
+
   profilePic?: string;
+
   profilePicture?: string;
 };
 
 type ViewerStory = {
   _id: string;
+
   media: StoryMedia[];
+
   createdAt: string;
+
   expiresAt: string;
 };
 
 type StoryViewerGroup = {
   user: StoryViewerUser;
+
   stories: ViewerStory[];
 };
 
 type StoryViewerProps = {
   group: StoryViewerGroup[];
+
   initialGroupIndex: number;
+
   onClose: () => void;
 };
+
+/*
+ * ============================================================
+ * AXIOS ERROR TYPE
+ * ============================================================
+ *
+ * This fixes:
+ *
+ * Property 'response' does not exist on type '{}'
+ *
+ * We do not directly access error.response anymore.
+ */
+type ApiError = {
+  response?: {
+    status?: number;
+
+    data?: {
+      success?: boolean;
+
+      message?: string;
+    };
+  };
+
+  message?: string;
+};
+
+/*
+ * ============================================================
+ * STORY VIEWER
+ * ============================================================
+ */
 
 export default function StoryViewer({
   group,
   initialGroupIndex,
   onClose,
 }: StoryViewerProps) {
-  const [groupIndex, setGroupIndex] = useState(initialGroupIndex);
-  const [storyIndex, setStoryIndex] = useState(0);
-  const [mediaIndex, setMediaIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
-  const [liked, setLiked] = useState(false);
-  const [reply, setReply] = useState("");
-  const [sendingReply, setSendingReply] = useState(false);
-  const [showAnalytics, setShowAnalytics] = useState(false);
+  /*
+   * ==========================================================
+   * STATE
+   * ==========================================================
+   */
 
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const [groupIndex, setGroupIndex] =
+    useState(initialGroupIndex);
 
-  const currentGroup = group[groupIndex];
-  const currentStory = currentGroup?.stories?.[storyIndex];
-  const media = currentStory?.media || [];
-  const currentMedia = media[mediaIndex];
+  const [storyIndex, setStoryIndex] =
+    useState(0);
+
+  const [mediaIndex, setMediaIndex] =
+    useState(0);
+
+  const [paused, setPaused] =
+    useState(false);
+
+  const [liked, setLiked] =
+    useState(false);
+
+  const [reply, setReply] =
+    useState("");
+
+  const [sendingReply, setSendingReply] =
+    useState(false);
+
+  const [showAnalytics, setShowAnalytics] =
+    useState(false);
+
+  /*
+   * ==========================================================
+   * REFS
+   * ==========================================================
+   */
+
+  const timerRef =
+    useRef<ReturnType<
+      typeof setTimeout
+    > | null>(null);
+
+  const videoRef =
+    useRef<HTMLVideoElement | null>(
+      null
+    );
+
+  /*
+   * ==========================================================
+   * CURRENT STORY
+   * ==========================================================
+   */
+
+  const currentGroup =
+    group[groupIndex];
+
+  const currentStory =
+    currentGroup?.stories?.[
+      storyIndex
+    ];
+
+  const media =
+    currentStory?.media || [];
+
+  const currentMedia =
+    media[mediaIndex];
+
+  /*
+   * ==========================================================
+   * STORY OWNER
+   * ==========================================================
+   */
 
   const isOwner =
-    currentGroup?.user?._id?.toString() === currentUser._id?.toString();
+    currentGroup?.user?._id
+      ?.toString() ===
+    currentUser._id?.toString();
 
-  const resetMedia = () => {
+  /*
+   * ==========================================================
+   * CLEAR TIMER
+   * ==========================================================
+   */
+
+  const clearStoryTimer =
+    useCallback(() => {
+      if (timerRef.current) {
+        clearTimeout(
+          timerRef.current
+        );
+
+        timerRef.current = null;
+      }
+    }, []);
+
+  /*
+   * ==========================================================
+   * RESET MEDIA
+   * ==========================================================
+   */
+
+  const resetMedia = useCallback(() => {
     setMediaIndex(0);
+
     setLiked(false);
-  };
+
+    setPaused(false);
+  }, []);
+
+  /*
+   * ==========================================================
+   * RECORD STORY VIEW
+   * ==========================================================
+   *
+   * A StoryView is created only once per user/story
+   * on the backend.
+   *
+   * Additional requests update the existing record.
+   */
 
   const recordView = useCallback(
-    async (completed = false) => {
-      if (!currentStory?._id) return;
+    async (
+      completed = false,
+      targetMediaIndex?: number
+    ) => {
+      if (!currentStory?._id) {
+        return;
+      }
 
       try {
         await axiosInstance.post(
           `/api/stories/${currentStory._id}/view`,
           {
-            mediaIndex,
+            mediaIndex:
+              targetMediaIndex ??
+              mediaIndex,
+
             completed,
           }
         );
-      } catch (error) {
-        console.error("Failed to record story view:", error);
+      } catch (error: unknown) {
+        const apiError =
+          error as ApiError;
+
+        console.error(
+          "Failed to record story view:",
+          apiError.response?.data ||
+            apiError.message ||
+            error
+        );
       }
     },
-    [currentStory?._id, mediaIndex]
+    [
+      currentStory?._id,
+      mediaIndex,
+    ]
   );
 
-  const goNext = useCallback(() => {
-    if (!currentGroup || !currentStory) {
+  /*
+   * ==========================================================
+   * GO TO NEXT
+   * ==========================================================
+   */
+
+  const goNext =
+    useCallback(() => {
+      clearStoryTimer();
+
+      if (
+        !currentGroup ||
+        !currentStory
+      ) {
+        onClose();
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * MORE MEDIA IN CURRENT STORY
+       * ------------------------------------------------------
+       */
+
+      if (
+        mediaIndex <
+        media.length - 1
+      ) {
+        const nextMediaIndex =
+          mediaIndex + 1;
+
+        /*
+         * Update progress for the
+         * current media item.
+         */
+        recordView(
+          false,
+          nextMediaIndex
+        );
+
+        setMediaIndex(
+          nextMediaIndex
+        );
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * CURRENT STORY COMPLETED
+       * ------------------------------------------------------
+       */
+
+      recordView(
+        true,
+        mediaIndex
+      );
+
+      /*
+       * ------------------------------------------------------
+       * MORE STORIES FROM SAME USER
+       * ------------------------------------------------------
+       */
+
+      if (
+        storyIndex <
+        currentGroup.stories.length -
+          1
+      ) {
+        setStoryIndex(
+          (index) =>
+            index + 1
+        );
+
+        resetMedia();
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * NEXT USER
+       * ------------------------------------------------------
+       */
+
+      if (
+        groupIndex <
+        group.length - 1
+      ) {
+        setGroupIndex(
+          (index) =>
+            index + 1
+        );
+
+        setStoryIndex(0);
+
+        resetMedia();
+
+        return;
+      }
+
+      /*
+       * ------------------------------------------------------
+       * NO MORE STORIES
+       * ------------------------------------------------------
+       */
+
       onClose();
+    }, [
+      clearStoryTimer,
+      currentGroup,
+      currentStory,
+      mediaIndex,
+      media.length,
+      storyIndex,
+      groupIndex,
+      group.length,
+      recordView,
+      resetMedia,
+      onClose,
+    ]);
+
+  /*
+   * ==========================================================
+   * GO TO PREVIOUS
+   * ==========================================================
+   */
+
+  const goPrev =
+    useCallback(() => {
+      clearStoryTimer();
+
+      /*
+       * Previous media in current Story.
+       */
+      if (mediaIndex > 0) {
+        setMediaIndex(
+          (index) =>
+            index - 1
+        );
+
+        setLiked(false);
+
+        return;
+      }
+
+      /*
+       * Previous Story from same user.
+       */
+      if (
+        storyIndex > 0 &&
+        currentGroup
+      ) {
+        const previousStory =
+          currentGroup.stories[
+            storyIndex - 1
+          ];
+
+        const previousMediaIndex =
+          Math.max(
+            0,
+            (previousStory?.media
+              ?.length || 1) - 1
+          );
+
+        setStoryIndex(
+          (index) =>
+            index - 1
+        );
+
+        setMediaIndex(
+          previousMediaIndex
+        );
+
+        setLiked(false);
+
+        return;
+      }
+
+      /*
+       * Previous user's Story.
+       */
+      if (groupIndex > 0) {
+        const previousGroup =
+          group[
+            groupIndex - 1
+          ];
+
+        const previousStoryIndex =
+          Math.max(
+            0,
+            previousGroup.stories
+              .length - 1
+          );
+
+        const previousStory =
+          previousGroup.stories[
+            previousStoryIndex
+          ];
+
+        const previousMediaIndex =
+          Math.max(
+            0,
+            (previousStory?.media
+              ?.length || 1) - 1
+          );
+
+        setGroupIndex(
+          (index) =>
+            index - 1
+        );
+
+        setStoryIndex(
+          previousStoryIndex
+        );
+
+        setMediaIndex(
+          previousMediaIndex
+        );
+
+        setLiked(false);
+
+        return;
+      }
+    }, [
+      clearStoryTimer,
+      mediaIndex,
+      storyIndex,
+      groupIndex,
+      currentGroup,
+      group,
+    ]);
+
+  /*
+   * ==========================================================
+   * RECORD VIEW WHEN STORY IS FIRST DISPLAYED
+   * ==========================================================
+   *
+   * IMPORTANT:
+   *
+   * This effect records the view when a new Story/media
+   * becomes visible.
+   *
+   * We no longer call recordView() from both this effect
+   * AND goNext() for the same transition unnecessarily.
+   */
+
+  const viewedStoryRef =
+    useRef<string>("");
+
+  useEffect(() => {
+    if (
+      !currentStory?._id ||
+      !currentMedia
+    ) {
       return;
     }
 
-    // Move through every media item in the current story first.
-    if (mediaIndex < media.length - 1) {
-      const completed = false;
-      recordView(completed);
-      setMediaIndex((index) => index + 1);
+    const viewKey =
+      `${currentStory._id}-${mediaIndex}`;
+
+    /*
+     * Avoid sending the exact same view request
+     * repeatedly because React effects can run more
+     * than once during development.
+     */
+    if (
+      viewedStoryRef.current ===
+      viewKey
+    ) {
       return;
     }
 
-    // Last media of this story has been completed.
-    recordView(true);
+    viewedStoryRef.current =
+      viewKey;
 
-    // Then move to the next story belonging to the same user.
-    if (storyIndex < currentGroup.stories.length - 1) {
-      setStoryIndex((index) => index + 1);
-      resetMedia();
-      return;
-    }
-
-    // Finally move to the next user's story group.
-    if (groupIndex < group.length - 1) {
-      setGroupIndex((index) => index + 1);
-      setStoryIndex(0);
-      resetMedia();
-      return;
-    }
-
-    onClose();
+    recordView(
+      false,
+      mediaIndex
+    );
   }, [
-    currentGroup,
-    currentStory,
+    currentStory?._id,
     mediaIndex,
-    media.length,
-    storyIndex,
-    groupIndex,
-    group.length,
+    currentMedia,
     recordView,
-    onClose,
   ]);
 
-  const goPrev = useCallback(() => {
-    if (mediaIndex > 0) {
-      setMediaIndex((index) => index - 1);
+  /*
+   * ==========================================================
+   * AUTO ADVANCE
+   * ==========================================================
+   */
+
+  useEffect(() => {
+    clearStoryTimer();
+
+    if (
+      paused ||
+      !currentMedia
+    ) {
       return;
     }
 
-    if (storyIndex > 0) {
-      const previousStory = currentGroup?.stories?.[storyIndex - 1];
-      setStoryIndex((index) => index - 1);
-      setMediaIndex(Math.max(0, (previousStory?.media?.length || 1) - 1));
-      setLiked(false);
-      return;
-    }
-
-    if (groupIndex > 0) {
-      const previousGroup = group[groupIndex - 1];
-      const previousStoryIndex = Math.max(0, previousGroup.stories.length - 1);
-      const previousStory = previousGroup.stories[previousStoryIndex];
-
-      setGroupIndex((index) => index - 1);
-      setStoryIndex(previousStoryIndex);
-      setMediaIndex(Math.max(0, (previousStory?.media?.length || 1) - 1));
-      setLiked(false);
-    }
-  }, [mediaIndex, storyIndex, groupIndex, currentGroup, group]);
-
-  // Record a view whenever a new story/media item is displayed.
-  useEffect(() => {
-    if (!currentStory?._id || !currentMedia) return;
-    recordView(false);
-  }, [currentStory?._id, mediaIndex, currentMedia, recordView]);
-
-  // Auto advance. Videos are also limited to the normal story duration;
-  // the video itself can still finish earlier and advance naturally.
-  useEffect(() => {
-    if (paused || !currentMedia) return;
-
-    timerRef.current = setTimeout(goNext, STORY_DURATION);
+    timerRef.current =
+      setTimeout(() => {
+        goNext();
+      }, STORY_DURATION);
 
     return () => {
-      if (timerRef.current) {
-        clearTimeout(timerRef.current);
-        timerRef.current = null;
-      }
+      clearStoryTimer();
     };
-  }, [paused, currentMedia, goNext]);
+  }, [
+    paused,
+    currentMedia,
+    goNext,
+    clearStoryTimer,
+  ]);
 
-  // Skip an expired story immediately.
+  /*
+   * ==========================================================
+   * EXPIRED STORY CHECK
+   * ==========================================================
+   */
+
   useEffect(() => {
-    if (!currentStory?.expiresAt) return;
+    if (
+      !currentStory?.expiresAt
+    ) {
+      return;
+    }
 
     const remaining =
-      new Date(currentStory.expiresAt).getTime() - Date.now();
+      new Date(
+        currentStory.expiresAt
+      ).getTime() -
+      Date.now();
 
     if (remaining <= 0) {
       goNext();
+
       return;
     }
 
-    const timer = setTimeout(goNext, remaining);
-    return () => clearTimeout(timer);
-  }, [currentStory?.expiresAt, goNext]);
-
-  useEffect(() => {
-    const handler = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-      if (event.key === "ArrowRight") goNext();
-      if (event.key === "ArrowLeft") goPrev();
-    };
-
-    window.addEventListener("keydown", handler);
-    document.body.style.overflow = "hidden";
+    const timer =
+      setTimeout(
+        () => {
+          goNext();
+        },
+        remaining
+      );
 
     return () => {
-      window.removeEventListener("keydown", handler);
-      document.body.style.overflow = "";
+      clearTimeout(timer);
     };
-  }, [onClose, goNext, goPrev]);
+  }, [
+    currentStory?.expiresAt,
+    goNext,
+  ]);
+
+  /*
+   * ==========================================================
+   * KEYBOARD CONTROLS
+   * ==========================================================
+   */
+
+  useEffect(() => {
+    const handler = (
+      event: KeyboardEvent
+    ) => {
+      if (
+        event.key === "Escape"
+      ) {
+        onClose();
+
+        return;
+      }
+
+      if (
+        event.key ===
+        "ArrowRight"
+      ) {
+        goNext();
+
+        return;
+      }
+
+      if (
+        event.key ===
+        "ArrowLeft"
+      ) {
+        goPrev();
+      }
+    };
+
+    window.addEventListener(
+      "keydown",
+      handler
+    );
+
+    document.body.style.overflow =
+      "hidden";
+
+    return () => {
+      window.removeEventListener(
+        "keydown",
+        handler
+      );
+
+      document.body.style.overflow =
+        "";
+    };
+  }, [
+    onClose,
+    goNext,
+    goPrev,
+  ]);
+
+  /*
+   * ==========================================================
+   * REACT TO STORY
+   * ==========================================================
+   */
 
   const react = async () => {
-    if (!currentStory?._id) return;
+    if (!currentStory?._id) {
+      return;
+    }
 
     try {
       if (liked) {
         await axiosInstance.delete(
           `/api/stories/${currentStory._id}/reaction`
         );
+
         setLiked(false);
       } else {
         await axiosInstance.post(
           `/api/stories/${currentStory._id}/reaction`,
-          { reaction: "like" }
+          {
+            reaction: "like",
+          }
         );
+
         setLiked(true);
       }
-    } catch (error) {
-      console.error("Story reaction error:", error);
+    } catch (error: unknown) {
+      const apiError =
+        error as ApiError;
+
+      console.error(
+        "Story reaction error:",
+        apiError.response?.data ||
+          apiError.message ||
+          error
+      );
+
+      /*
+       * Story may have expired while
+       * the viewer was open.
+       */
+      if (
+        apiError.response
+          ?.status === 404
+      ) {
+        onClose();
+      }
     }
   };
 
+  /*
+   * ==========================================================
+   * SEND REPLY
+   * ==========================================================
+   */
+
   const sendReply = async () => {
-    const text = reply.trim();
-    if (!text || !currentStory?._id || sendingReply) return;
+    const text =
+      reply.trim();
+
+    if (
+      !text ||
+      !currentStory?._id ||
+      sendingReply
+    ) {
+      return;
+    }
 
     try {
       setSendingReply(true);
 
       await axiosInstance.post(
         `/api/stories/${currentStory._id}/reply`,
-        { text }
+        {
+          text,
+        }
       );
 
+      /*
+       * Clear input after
+       * successful reply.
+       */
       setReply("");
-    } catch (error) {
-      console.error("Story reply error:", error);
+    } catch (error: unknown) {
+      const apiError =
+        error as ApiError;
+
+      console.error(
+        "Story reply error:",
+        apiError.response?.data ||
+          apiError.message ||
+          error
+      );
+
+      /*
+       * If Story expired,
+       * close the viewer.
+       */
+      if (
+        apiError.response
+          ?.status === 404
+      ) {
+        onClose();
+      }
     } finally {
       setSendingReply(false);
     }
   };
 
-  const deleteStory = async () => {
-    if (!currentStory?._id || !isOwner) return;
+  /*
+   * ==========================================================
+   * DELETE STORY
+   * ==========================================================
+   */
 
-    const confirmed = window.confirm(
-      "Delete this story before it expires?"
-    );
+  const deleteStory =
+    async () => {
+      if (
+        !currentStory?._id ||
+        !isOwner
+      ) {
+        return;
+      }
 
-    if (!confirmed) return;
+      const confirmed =
+        window.confirm(
+          "Delete this story before it expires?"
+        );
 
-    try {
-      await axiosInstance.delete(`/api/stories/${currentStory._id}`);
-      onClose();
-    } catch (error) {
-      console.error("Delete story error:", error);
-    }
-  };
+      if (!confirmed) {
+        return;
+      }
 
-  const getStoryAge = useMemo(() => {
-    if (!currentStory?.createdAt) return "now";
+      try {
+        await axiosInstance.delete(
+          `/api/stories/${currentStory._id}`
+        );
 
-    const minutes = Math.floor(
-      (Date.now() - new Date(currentStory.createdAt).getTime()) /
-        (1000 * 60)
-    );
+        /*
+         * Close viewer after successful
+         * deletion.
+         */
+        onClose();
+      } catch (error: unknown) {
+        const apiError =
+          error as ApiError;
 
-    if (minutes < 1) return "now";
-    if (minutes < 60) return `${minutes}m`;
-    return `${Math.min(24, Math.floor(minutes / 60))}h`;
-  }, [currentStory?.createdAt]);
+        console.error(
+          "Delete story error:",
+          apiError.response?.data ||
+            apiError.message ||
+            error
+        );
+      }
+    };
 
-  if (!currentGroup || !currentStory || !currentMedia) return null;
+  /*
+   * ==========================================================
+   * STORY AGE
+   * ==========================================================
+   */
+
+  const getStoryAge =
+    useMemo(() => {
+      if (
+        !currentStory?.createdAt
+      ) {
+        return "now";
+      }
+
+      const createdAt =
+        new Date(
+          currentStory.createdAt
+        ).getTime();
+
+      const minutes = Math.floor(
+        (Date.now() -
+          createdAt) /
+          (1000 * 60)
+      );
+
+      if (minutes < 1) {
+        return "now";
+      }
+
+      if (minutes < 60) {
+        return `${minutes}m`;
+      }
+
+      return `${Math.min(
+        24,
+        Math.floor(
+          minutes / 60
+        )
+      )}h`;
+    }, [
+      currentStory?.createdAt,
+    ]);
+
+  /*
+   * ==========================================================
+   * SAFETY CHECK
+   * ==========================================================
+   */
+
+  if (
+    !currentGroup ||
+    !currentStory ||
+    !currentMedia
+  ) {
+    return null;
+  }
+
+  /*
+   * ==========================================================
+   * PROFILE IMAGE
+   * ==========================================================
+   */
 
   const profileImage =
-    currentGroup.user.profilePicture ||
-    currentGroup.user.profilePic ||
+    currentGroup.user
+      .profilePicture ||
+    currentGroup.user
+      .profilePic ||
     "";
+
+  /*
+   * ==========================================================
+   * RENDER
+   * ==========================================================
+   */
 
   return (
     <div className="fixed inset-0 z-200 bg-black flex items-center justify-center">
-      <div className="relative w-full max-w-100 h-[100dvh] bg-black overflow-hidden">
-        {currentMedia.type === "video" ? (
+      <div className="relative w-full max-w-100 h-dvh bg-black overflow-hidden">
+        {/* ==================================================
+            STORY MEDIA
+        ================================================== */}
+
+        {currentMedia.type ===
+        "video" ? (
           <video
             ref={videoRef}
             key={`${currentStory._id}-${mediaIndex}`}
@@ -311,7 +946,9 @@ export default function StoryViewer({
             muted
             playsInline
             className="absolute inset-0 w-full h-full object-cover"
-            onEnded={() => goNext()}
+            onEnded={() => {
+              goNext();
+            }}
           />
         ) : (
           <img
@@ -322,46 +959,65 @@ export default function StoryViewer({
           />
         )}
 
+        {/* ==================================================
+            GRADIENT OVERLAY
+        ================================================== */}
+
         <div className="absolute inset-0 bg-linear-to-b from-black/55 via-transparent to-black/65 pointer-events-none" />
 
-        {/* Progress for every media item in the current story. */}
+        {/* ==================================================
+            STORY PROGRESS
+        ================================================== */}
+
         <div className="absolute top-3 left-3 right-3 flex gap-1 z-20">
-          {media.map((_, index) => (
-            <div
-              key={index}
-              className="flex-1 h-0.5 bg-white/40 rounded-full overflow-hidden"
-            >
+          {media.map(
+            (_, index) => (
               <div
-                className={`h-full bg-white ${
-                  index < mediaIndex ? "w-full" :
-                  index > mediaIndex ? "w-0" : "w-full"
-                }`}
-                style={
-                  index === mediaIndex
-                    ? {
-                        animation: `storyFill ${
-                          currentMedia.type === "video"
-                            ? STORY_DURATION
-                            : STORY_DURATION
-                        }ms linear forwards`,
-                        animationPlayState: paused
-                          ? "paused"
-                          : "running",
-                      }
-                    : undefined
-                }
-              />
-            </div>
-          ))}
+                key={index}
+                className="flex-1 h-0.5 bg-white/40 rounded-full overflow-hidden"
+              >
+                <div
+                  className={`h-full bg-white ${
+                    index <
+                    mediaIndex
+                      ? "w-full"
+                      : index >
+                        mediaIndex
+                      ? "w-0"
+                      : "w-full"
+                  }`}
+                  style={
+                    index ===
+                    mediaIndex
+                      ? {
+                          animation: `storyFill ${STORY_DURATION}ms linear forwards`,
+
+                          animationPlayState:
+                            paused
+                              ? "paused"
+                              : "running",
+                        }
+                      : undefined
+                  }
+                />
+              </div>
+            )
+          )}
         </div>
 
-        {/* Header */}
+        {/* ==================================================
+            STORY HEADER
+        ================================================== */}
+
         <div className="absolute top-7 left-3 right-3 z-20 flex items-center justify-between">
           <div className="flex items-center gap-2">
+            {/* Profile image */}
             <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
               {profileImage ? (
                 <img
-                  src={profileImage}
+                  src={
+                    profileImage
+                  }
                   alt=""
                   className="w-full h-full object-cover"
                 />
@@ -370,26 +1026,47 @@ export default function StoryViewer({
               )}
             </div>
 
+            {/* Username */}
             <span className="text-white text-sm font-semibold">
-              {currentGroup.user.username}
+              {
+                currentGroup
+                  .user
+                  .username
+              }
             </span>
-            <span className="text-white/70 text-xs">· {getStoryAge}</span>
+
+            {/* Story age */}
+            <span className="text-white/70 text-xs">
+              · {getStoryAge}
+            </span>
           </div>
 
+          {/* Header actions */}
           <div className="flex items-center gap-2">
             {isOwner && (
               <>
+                {/* Analytics */}
                 <button
                   type="button"
-                  onClick={() => setShowAnalytics(true)}
+                  onClick={() =>
+                    setShowAnalytics(
+                      true
+                    )
+                  }
                   className="text-white p-2"
                   aria-label="Story analytics"
                 >
-                  <BarChart3 size={20} />
+                  <BarChart3
+                    size={20}
+                  />
                 </button>
+
+                {/* Delete */}
                 <button
                   type="button"
-                  onClick={deleteStory}
+                  onClick={
+                    deleteStory
+                  }
                   className="text-white text-xs px-2 py-1 rounded bg-black/40"
                 >
                   Delete
@@ -397,6 +1074,7 @@ export default function StoryViewer({
               </>
             )}
 
+            {/* Close */}
             <button
               type="button"
               onClick={onClose}
@@ -408,53 +1086,111 @@ export default function StoryViewer({
           </div>
         </div>
 
-        {/* Previous / next hit areas */}
+        {/* ==================================================
+            LEFT CLICK AREA
+        ================================================== */}
+
         <button
           type="button"
           aria-label="Previous story"
           onClick={goPrev}
-          onPointerDown={() => setPaused(true)}
-          onPointerUp={() => setPaused(false)}
+          onPointerDown={() =>
+            setPaused(true)
+          }
+          onPointerUp={() =>
+            setPaused(false)
+          }
+          onPointerCancel={() =>
+            setPaused(false)
+          }
           className="absolute left-0 top-20 bottom-20 w-1/3 z-10"
         />
+
+        {/* ==================================================
+            RIGHT CLICK AREA
+        ================================================== */}
+
         <button
           type="button"
           aria-label="Next story"
           onClick={goNext}
-          onPointerDown={() => setPaused(true)}
-          onPointerUp={() => setPaused(false)}
+          onPointerDown={() =>
+            setPaused(true)
+          }
+          onPointerUp={() =>
+            setPaused(false)
+          }
+          onPointerCancel={() =>
+            setPaused(false)
+          }
           className="absolute right-0 top-20 bottom-20 w-1/3 z-10"
         />
 
-        {/* Reply / reaction bar */}
+        {/* ==================================================
+            REPLY / REACTION BAR
+        ================================================== */}
+
         {!isOwner && (
           <div className="absolute bottom-4 left-3 right-3 z-20 flex items-center gap-2">
+            {/* Reply input */}
             <input
               value={reply}
-              onChange={(event) => setReply(event.target.value)}
-              onFocus={() => setPaused(true)}
-              onBlur={() => setPaused(false)}
-              onKeyDown={(event) => {
-                if (event.key === "Enter") sendReply();
+              onChange={(
+                event
+              ) =>
+                setReply(
+                  event.target
+                    .value
+                )
+              }
+              onFocus={() =>
+                setPaused(true)
+              }
+              onBlur={() =>
+                setPaused(false)
+              }
+              onKeyDown={(
+                event
+              ) => {
+                if (
+                  event.key ===
+                  "Enter"
+                ) {
+                  sendReply();
+                }
               }}
               maxLength={500}
               placeholder="Reply to story..."
               className="min-w-0 flex-1 rounded-full border border-white/60 bg-black/40 px-4 py-2 text-sm text-white placeholder:text-white/70 outline-none"
             />
 
+            {/* Like */}
             <button
               type="button"
               onClick={react}
               className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-black/40"
               aria-label="Like story"
             >
-              <Heart size={22} fill={liked ? "currentColor" : "none"} />
+              <Heart
+                size={22}
+                fill={
+                  liked
+                    ? "currentColor"
+                    : "none"
+                }
+              />
             </button>
 
+            {/* Send */}
             <button
               type="button"
-              onClick={sendReply}
-              disabled={!reply.trim() || sendingReply}
+              onClick={
+                sendReply
+              }
+              disabled={
+                !reply.trim() ||
+                sendingReply
+              }
               className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-black/40 disabled:opacity-40"
               aria-label="Send reply"
             >
@@ -463,34 +1199,72 @@ export default function StoryViewer({
           </div>
         )}
 
-        {/* Desktop navigation */}
+        {/* ==================================================
+            DESKTOP PREVIOUS BUTTON
+        ================================================== */}
+
         {groupIndex > 0 && (
           <button
             type="button"
             onClick={goPrev}
-            className="hidden md:flex absolute left-[-60px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 items-center justify-center z-30"
+            className="hidden md:flex absolute -left-15 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 items-center justify-center z-30"
+            aria-label="Previous user story"
           >
-            <ChevronLeft size={22} />
+            <ChevronLeft
+              size={22}
+            />
           </button>
         )}
 
-        {groupIndex < group.length - 1 && (
+        {/* ==================================================
+            DESKTOP NEXT BUTTON
+        ================================================== */}
+
+        {groupIndex <
+          group.length - 1 && (
           <button
             type="button"
             onClick={goNext}
-            className="hidden md:flex absolute right-[-60px] top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 items-center justify-center z-30"
+            className="hidden md:flex absolute -right-15 top-1/2 -translate-y-1/2 w-10 h-10 rounded-full bg-white/90 items-center justify-center z-30"
+            aria-label="Next user story"
           >
-            <ChevronRight size={22} />
+            <ChevronRight
+              size={22}
+            />
           </button>
         )}
       </div>
 
-      {showAnalytics && isOwner && currentStory?._id && (
-        <StoryAnalytics
-          storyId={currentStory._id}
-          onClose={() => setShowAnalytics(false)}
-        />
-      )}
+      {/* ====================================================
+          STORY ANALYTICS
+      ==================================================== */}
+
+      {showAnalytics &&
+        isOwner &&
+        currentStory?._id && (
+          <StoryAnalytics
+            storyId={
+              currentStory._id
+            }
+            onClose={() =>
+              setShowAnalytics(
+                false
+              )
+            }
+          />
+        )}
     </div>
   );
 }
+
+/*
+ * ============================================================
+ * OPTIONAL HELPER TYPE
+ * ============================================================
+ *
+ * Kept here for compatibility if additional UI elements
+ * are added later.
+ */
+type StoryViewerContentProps = {
+  children?: ReactNode;
+};
