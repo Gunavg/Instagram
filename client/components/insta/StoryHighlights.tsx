@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus, Trash2, X, Check, Play } from "lucide-react";
+import { Plus, Trash2, X, Check, Play, Eye } from "lucide-react";
 import { useEffect, useState } from "react";
 import axiosInstance from "@/lib/axios";
 import HighlightViewer from "./HighlightViewer";
@@ -17,6 +17,8 @@ interface ArchivedStory {
   createdAt: string;
   expiresAt: string;
   status?: "active" | "archived" | "deleted";
+  viewsCount?: number;
+  uniqueViewersCount?: number;
 }
 
 interface Highlight {
@@ -24,7 +26,26 @@ interface Highlight {
   title: string;
   coverUrl?: string;
   stories: ArchivedStory[];
+  totalViews?: number;
+  uniqueViewers?: number;
 }
+
+interface HighlightAnalytics {
+  highlightId: string;
+  title: string;
+  totalViews: number;
+  uniqueViewers: number;
+  stories: Array<{
+    storyId: string;
+    views: number;
+  }>;
+}
+
+const formatCount = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(Math.max(0, Number(value) || 0));
 
 export default function StoryHighlights() {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
@@ -47,12 +68,62 @@ export default function StoryHighlights() {
         axiosInstance.get("/api/stories/archive"),
       ]);
 
-      setHighlights(highlightsResponse.data?.highlights || []);
-      setArchivedStories(
-        (storiesResponse.data?.stories || []).filter(
-          (story: ArchivedStory) => story.status !== "deleted"
-        )
+      const loadedHighlights: Highlight[] =
+        highlightsResponse.data?.highlights || [];
+
+      const stories: ArchivedStory[] = (
+        storiesResponse.data?.stories || []
+      ).filter(
+        (story: ArchivedStory) => story.status !== "deleted"
       );
+
+      /*
+       * Fetch aggregate Highlight analytics separately.
+       * This gives us correct Highlight-level unique viewers:
+       * the same viewer is counted only once even when they
+       * watched several Stories inside the Highlight.
+       */
+      const highlightsWithAnalytics = await Promise.all(
+        loadedHighlights.map(async (highlight) => {
+          try {
+            const response = await axiosInstance.get(
+              `/api/story-highlights/${highlight._id}/analytics`
+            );
+
+            return {
+              ...highlight,
+              totalViews: response.data?.analytics?.totalViews || 0,
+              uniqueViewers:
+                response.data?.analytics?.uniqueViewers || 0,
+            };
+          } catch (analyticsError) {
+            console.error(
+              `Failed to load analytics for highlight ${highlight._id}:`,
+              analyticsError
+            );
+
+            /* Fallback to Story counters if analytics endpoint fails. */
+            const totalViews = (highlight.stories || []).reduce(
+              (sum, story) => sum + (story.viewsCount || 0),
+              0
+            );
+
+            const uniqueViewers = (highlight.stories || []).reduce(
+              (sum, story) => sum + (story.uniqueViewersCount || 0),
+              0
+            );
+
+            return {
+              ...highlight,
+              totalViews,
+              uniqueViewers,
+            };
+          }
+        })
+      );
+
+      setHighlights(highlightsWithAnalytics);
+      setArchivedStories(stories);
     } catch (err: any) {
       console.error("Story highlights loading error:", err);
       setError(
@@ -169,17 +240,19 @@ export default function StoryHighlights() {
             const firstStory = highlight.stories?.[0];
             const firstMedia = firstStory?.media?.[0];
             const cover = highlight.coverUrl || firstMedia?.url;
+            const totalViews = highlight.totalViews || 0;
+            const uniqueViewers = highlight.uniqueViewers || 0;
 
             return (
               <div
                 key={highlight._id}
-                className="relative shrink-0 w-20 flex flex-col items-center group"
+                className="relative shrink-0 w-24 flex flex-col items-center group"
               >
                 <button
                   type="button"
                   onClick={() => setViewingHighlight(highlight)}
                   className="w-18 h-18 rounded-full p-0.75 bg-linear-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]"
-                  aria-label={`Open ${highlight.title} highlight`}
+                  aria-label={`Open ${highlight.title} highlight with ${formatCount(totalViews)} views`}
                 >
                   <div className="w-full h-full rounded-full border-2 border-ig-surface overflow-hidden bg-ig-hover">
                     {cover ? (
@@ -192,7 +265,11 @@ export default function StoryHighlights() {
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 flex items-center justify-center">
-                            <Play size={18} className="text-white" fill="white" />
+                            <Play
+                              size={18}
+                              className="text-white"
+                              fill="white"
+                            />
                           </div>
                         </div>
                       ) : (
@@ -210,9 +287,19 @@ export default function StoryHighlights() {
                   </div>
                 </button>
 
-                <span className="mt-2 text-xs text-ig-text truncate max-w-20 text-center">
+                <span className="mt-2 text-xs text-ig-text truncate max-w-24 text-center">
                   {highlight.title}
                 </span>
+
+                <div className="mt-1 flex items-center justify-center gap-1 text-[11px] text-ig-muted">
+                  <Eye size={11} />
+                  <span>{formatCount(totalViews)}</span>
+                  <span>views</span>
+                </div>
+
+                <div className="text-[10px] text-ig-muted mt-0.5">
+                  {formatCount(uniqueViewers)} unique viewers
+                </div>
 
                 <button
                   type="button"
@@ -303,6 +390,11 @@ export default function StoryHighlights() {
                         </div>
                       </div>
                     )}
+
+                    <div className="absolute bottom-1 left-1 right-1 rounded bg-black/60 px-1 py-0.5 text-white text-[9px] flex items-center justify-center gap-1">
+                      <Eye size={9} />
+                      {formatCount(story.viewsCount || 0)}
+                    </div>
                   </button>
                 );
               })}
@@ -324,7 +416,12 @@ export default function StoryHighlights() {
         {error && (
           <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
             <p className="flex-1 text-sm text-red-500">{error}</p>
-            <button type="button" onClick={() => setError("")} className="text-red-500">
+            <button
+              type="button"
+              onClick={() => setError("")}
+              className="text-red-500"
+              aria-label="Close error"
+            >
               <X size={16} />
             </button>
           </div>
@@ -344,6 +441,8 @@ export default function StoryHighlights() {
         <HighlightViewer
           title={viewingHighlight.title}
           stories={viewingHighlight.stories}
+          totalViews={viewingHighlight.totalViews || 0}
+          uniqueViewers={viewingHighlight.uniqueViewers || 0}
           onClose={() => setViewingHighlight(null)}
         />
       )}
