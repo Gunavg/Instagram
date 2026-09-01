@@ -1,22 +1,21 @@
 "use client";
 
 import {
-  ChevronLeft,
-  ChevronRight,
-  Heart,
-  Send,
-  X,
-  BarChart3,
-} from "lucide-react";
-
-import {
   useCallback,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
-
+import {
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  Send,
+  X,
+  BarChart3,
+  Eye,
+} from "lucide-react";
 import type { ReactNode } from "react";
 
 import axiosInstance from "@/lib/axios";
@@ -68,6 +67,12 @@ type ViewerStory = {
   createdAt: string;
 
   expiresAt: string;
+
+  viewsCount?: number;
+
+  uniqueViewersCount?: number;
+
+  completedViewsCount?: number;
 };
 
 type StoryViewerGroup = {
@@ -1004,7 +1009,27 @@ export default function StoryViewer({
             )
           )}
         </div>
+        
+        <div className="flex items-center gap-3 mt-2 text-xs text-white/80">
+  <span className="inline-flex items-center gap-1">
+    <Eye size={14} />
 
+    {Number(
+      currentStory.viewsCount ?? 0
+    )}
+
+    views
+  </span>
+
+  {isOwner && (
+    <span>
+      {Number(
+        currentStory.uniqueViewersCount ?? 0
+      )}{" "}
+      unique viewers
+    </span>
+  )}
+</div>
         {/* ==================================================
             STORY HEADER
         ================================================== */}

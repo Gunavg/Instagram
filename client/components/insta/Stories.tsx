@@ -26,6 +26,7 @@ type StoryUser = {
 
 type Story = {
   _id: string;
+
   user: {
     _id: string;
     username: string;
@@ -33,9 +34,19 @@ type Story = {
     profilePic?: string;
     profilePicture?: string;
   };
+
   media: StoryMedia[];
+
   createdAt: string;
+
   expiresAt: string;
+
+  // Story analytics
+  viewsCount?: number;
+
+  uniqueViewersCount?: number;
+
+  completedViewsCount?: number;
 };
 
 type StoryGroup = {
@@ -295,15 +306,22 @@ export default function Stories() {
   ========================================================= */
 
   const viewerGroups = storyGroups.map((group) => ({
-    user: group.user,
+  user: group.user,
 
-    stories: group.stories.map((story) => ({
-      _id: story._id,
-      media: story.media,
-      createdAt: story.createdAt,
-      expiresAt: story.expiresAt,
-    })),
-  }));
+  stories: group.stories.map((story) => ({
+    _id: story._id,
+    media: story.media,
+    createdAt: story.createdAt,
+    expiresAt: story.expiresAt,
+
+    // Story analytics
+    viewsCount: story.viewsCount ?? 0,
+    uniqueViewersCount:
+      story.uniqueViewersCount ?? 0,
+    completedViewsCount:
+      story.completedViewsCount ?? 0,
+  })),
+}));
 
   /* =========================================================
      SCROLL STATE
