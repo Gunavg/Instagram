@@ -10,6 +10,7 @@ initSocket(server);
 const startServer = async () => {
   try {
     await connectDB();
+    startStoryExpirationJob();
     server.listen(PORT, () => {
       console.log("--------------------------------");
       console.log(`🚀 Server Running`);
