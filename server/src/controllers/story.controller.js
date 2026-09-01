@@ -1,13 +1,12 @@
 import Story from "../models/Story.model.js";
 import Follow from "../models/Follow.model.js";
 import CloseFriend from "../models/CloseFriend.model.js";
-import { uploadToCloudinary } from "../middleware/storyUpload.middleware.js";
 
 /*
- * Check whether a user can view a story.
+ * Check whether a viewer is allowed to see a story.
  */
 const canViewStory = async (story, viewerId) => {
-  // Story owner can always see their own story.
+  // Story owner can always view their own story.
   if (story.user.toString() === viewerId.toString()) {
     return true;
   }
@@ -27,7 +26,7 @@ const canViewStory = async (story, viewerId) => {
     return Boolean(follow);
   }
 
-  // Close-friends story.
+  // Close Friends story.
   if (story.privacy === "close_friends") {
     const closeFriend = await CloseFriend.exists({
       owner: story.user,
@@ -42,10 +41,14 @@ const canViewStory = async (story, viewerId) => {
 
 /*
  * CREATE STORY
+ *
  * POST /api/stories
  */
 export const createStory = async (req, res) => {
   try {
+    /*
+     * Authentication check
+     */
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -64,17 +67,17 @@ export const createStory = async (req, res) => {
     }
 
     /*
-     * Story privacy.
+     * Privacy setting.
      */
     const privacy = req.body?.privacy || "public";
 
-    const allowedPrivacy = [
-      "public",
-      "followers",
-      "close_friends",
-    ];
-
-    if (!allowedPrivacy.includes(privacy)) {
+    if (
+      ![
+        "public",
+        "followers",
+        "close_friends",
+      ].includes(privacy)
+    ) {
       return res.status(400).json({
         success: false,
         message: "Invalid privacy setting",
@@ -82,39 +85,33 @@ export const createStory = async (req, res) => {
     }
 
     /*
-     * Upload all media files to Cloudinary.
+     * Convert uploaded files into Story media objects.
      *
-     * IMPORTANT:
-     * req.files is available here because this code
-     * is inside the createStory controller.
+     * Depending on your upload middleware, the URL can
+     * come from:
+     * - file.path
+     * - file.location
+     * - file.url
      */
-    const media = [];
-
-    for (const file of req.files) {
-  const uploaded = await uploadToCloudinary(file);
-
-  media.push({
-    url: uploaded.secure_url,
-    publicId: uploaded.public_id,
-    type: file.mimetype.startsWith("video/")
-      ? "video"
-      : "image",
-    width: uploaded.width,
-    height: uploaded.height,
-    duration: uploaded.duration,
-  });
-}
+    const media = req.files.map((file) => ({
+      url: file.path || file.location || file.url,
+      type: file.mimetype?.startsWith("video/")
+        ? "video"
+        : "image",
+    }));
 
     /*
-     * Make sure Cloudinary returned media.
+     * Check whether every file has a valid URL.
      */
-    if (
-      media.length === 0 ||
-      media.some((item) => !item.url)
-    ) {
+    const invalidMedia = media.some(
+      (item) => !item.url
+    );
+
+    if (invalidMedia) {
       return res.status(500).json({
         success: false,
-        message: "Media upload failed",
+        message:
+          "Media upload failed. Uploaded file URL was not found.",
       });
     }
 
@@ -128,7 +125,7 @@ export const createStory = async (req, res) => {
     );
 
     /*
-     * Save Story in MongoDB.
+     * Save story in MongoDB.
      */
     const story = await Story.create({
       user: req.user._id,
@@ -146,9 +143,12 @@ export const createStory = async (req, res) => {
       story._id
     ).populate(
       "user",
-      "_id username fullName profilePicture"
+      "username fullName profilePicture"
     );
 
+    /*
+     * Return created story.
+     */
     return res.status(201).json({
       success: true,
       message: "Story created successfully",
@@ -159,18 +159,21 @@ export const createStory = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message:
-        error.message || "Failed to create story",
+      message: error.message || "Failed to create story",
     });
   }
 };
 
 /*
  * GET ACTIVE STORIES
+ *
  * GET /api/stories
  */
 export const getStories = async (req, res) => {
   try {
+    /*
+     * Authentication check.
+     */
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -181,7 +184,7 @@ export const getStories = async (req, res) => {
     const now = new Date();
 
     /*
-     * Only return non-expired active stories.
+     * Get only active and non-expired stories.
      */
     const stories = await Story.find({
       status: "active",
@@ -194,7 +197,7 @@ export const getStories = async (req, res) => {
         "_id username fullName profilePicture"
       )
       .sort({
-        createdAt: -1,
+        createdAt: 1,
       })
       .lean();
 
@@ -223,18 +226,21 @@ export const getStories = async (req, res) => {
 
     return res.status(500).json({
       success: false,
-      message:
-        error.message || "Failed to fetch stories",
+      message: error.message || "Failed to get stories",
     });
   }
 };
 
 /*
  * DELETE OWN STORY
+ *
  * DELETE /api/stories/:id
  */
 export const deleteStory = async (req, res) => {
   try {
+    /*
+     * Authentication check.
+     */
     if (!req.user) {
       return res.status(401).json({
         success: false,
@@ -243,7 +249,7 @@ export const deleteStory = async (req, res) => {
     }
 
     /*
-     * Only the owner can delete the story.
+     * Find only the user's active story.
      */
     const story = await Story.findOne({
       _id: req.params.id,
@@ -254,8 +260,7 @@ export const deleteStory = async (req, res) => {
     if (!story) {
       return res.status(404).json({
         success: false,
-        message:
-          "Story not found or already expired/deleted",
+        message: "Story not found",
       });
     }
 
