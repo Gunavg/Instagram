@@ -1,175 +1,41 @@
 import Story from "../models/Story.model.js";
-import Follow from "../models/Follow.model.js";
-import CloseFriend from "../models/CloseFriend.model.js";
+import StoryReaction from "../models/StoryReaction.model.js";
+import { canViewStory } from "./story.controller.js";
+import { io } from "../socket.js";
 
 /*
- * Check whether a viewer is allowed to see a story.
+ * Emit updated Story analytics to the Story owner.
  */
-const canViewStory = async (story, viewerId) => {
-  // Story owner can always view their own story.
-  if (story.user.toString() === viewerId.toString()) {
-    return true;
+const emitReactionAnalytics = async (storyId) => {
+  const updatedStory = await Story.findById(storyId).select(
+    "likesCount repliesCount viewsCount uniqueViewersCount completedViewsCount"
+  );
+
+  if (!updatedStory) {
+    return;
   }
 
-  // Public story.
-  if (story.privacy === "public") {
-    return true;
-  }
-
-  // Followers-only story.
-  if (story.privacy === "followers") {
-    const follow = await Follow.exists({
-      follower: viewerId,
-      following: story.user,
-    });
-
-    return Boolean(follow);
-  }
-
-  // Close Friends story.
-  if (story.privacy === "close_friends") {
-    const closeFriend = await CloseFriend.exists({
-      owner: story.user,
-      friend: viewerId,
-    });
-
-    return Boolean(closeFriend);
-  }
-
-  return false;
+  io?.to(`story-analytics:${storyId}`).emit(
+    "story-analytics-updated",
+    {
+      storyId: storyId.toString(),
+      likesCount: updatedStory.likesCount,
+      repliesCount: updatedStory.repliesCount,
+      viewsCount: updatedStory.viewsCount,
+      uniqueViewersCount:
+        updatedStory.uniqueViewersCount,
+      completedViewsCount:
+        updatedStory.completedViewsCount,
+    }
+  );
 };
 
 /*
- * CREATE STORY
+ * REACT TO STORY
  *
- * POST /api/stories
+ * POST /api/stories/:storyId/reaction
  */
-export const createStory = async (req, res) => {
-  try {
-    /*
-     * Authentication check
-     */
-    if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: "Unauthorized",
-      });
-    }
-
-    /*
-     * Check uploaded files.
-     */
-    if (!req.files || req.files.length === 0) {
-      return res.status(400).json({
-        success: false,
-        message: "Please upload at least one image or video",
-      });
-    }
-
-    /*
-     * Privacy setting.
-     */
-    const privacy = req.body?.privacy || "public";
-
-    if (
-      ![
-        "public",
-        "followers",
-        "close_friends",
-      ].includes(privacy)
-    ) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid privacy setting",
-      });
-    }
-
-    /*
-     * Convert uploaded files into Story media objects.
-     *
-     * Depending on your upload middleware, the URL can
-     * come from:
-     * - file.path
-     * - file.location
-     * - file.url
-     */
-    const media = req.files.map((file) => ({
-      url: file.path || file.location || file.url,
-      type: file.mimetype?.startsWith("video/")
-        ? "video"
-        : "image",
-    }));
-
-    /*
-     * Check whether every file has a valid URL.
-     */
-    const invalidMedia = media.some(
-      (item) => !item.url
-    );
-
-    if (invalidMedia) {
-      return res.status(500).json({
-        success: false,
-        message:
-          "Media upload failed. Uploaded file URL was not found.",
-      });
-    }
-
-    /*
-     * Story expires after 24 hours.
-     */
-    const now = new Date();
-
-    const expiresAt = new Date(
-      now.getTime() + 24 * 60 * 60 * 1000
-    );
-
-    /*
-     * Save story in MongoDB.
-     */
-    const story = await Story.create({
-      user: req.user._id,
-      media,
-      privacy,
-      status: "active",
-      createdAt: now,
-      expiresAt,
-    });
-
-    /*
-     * Populate owner information.
-     */
-    const populatedStory = await Story.findById(
-      story._id
-    ).populate(
-      "user",
-      "username fullName profilePicture"
-    );
-
-    /*
-     * Return created story.
-     */
-    return res.status(201).json({
-      success: true,
-      message: "Story created successfully",
-      story: populatedStory,
-    });
-  } catch (error) {
-    console.error("Create story error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Failed to create story",
-    });
-  }
-};
-
-/*
- * GET ACTIVE STORIES
- *
- * GET /api/stories
- */
-export const getStories = async (req, res) => {
+export const reactToStory = async (req, res) => {
   try {
     /*
      * Authentication check.
@@ -181,109 +47,248 @@ export const getStories = async (req, res) => {
       });
     }
 
-    const now = new Date();
+    const { storyId } = req.params;
+
+    const reaction =
+      req.body?.reaction || "like";
 
     /*
-     * Get only active and non-expired stories.
+     * Allowed reaction types.
      */
-    const stories = await Story.find({
-      status: "active",
-      expiresAt: {
-        $gt: now,
-      },
-    })
-      .populate(
-        "user",
-        "_id username fullName profilePicture"
-      )
-      .sort({
-        createdAt: 1,
-      })
-      .lean();
+    const allowed = [
+      "like",
+      "love",
+      "haha",
+      "wow",
+      "sad",
+      "angry",
+    ];
 
-    /*
-     * Apply privacy rules.
-     */
-    const visibleStories = [];
-
-    for (const story of stories) {
-      const allowed = await canViewStory(
-        story,
-        req.user._id
-      );
-
-      if (allowed) {
-        visibleStories.push(story);
-      }
-    }
-
-    return res.status(200).json({
-      success: true,
-      stories: visibleStories,
-    });
-  } catch (error) {
-    console.error("Get stories error:", error);
-
-    return res.status(500).json({
-      success: false,
-      message: error.message || "Failed to get stories",
-    });
-  }
-};
-
-/*
- * DELETE OWN STORY
- *
- * DELETE /api/stories/:id
- */
-export const deleteStory = async (req, res) => {
-  try {
-    /*
-     * Authentication check.
-     */
-    if (!req.user) {
-      return res.status(401).json({
+    if (!allowed.includes(reaction)) {
+      return res.status(400).json({
         success: false,
-        message: "Unauthorized",
+        message: "Invalid reaction",
       });
     }
 
     /*
-     * Find only the user's active story.
+     * Find only an active, non-expired Story.
      */
     const story = await Story.findOne({
-      _id: req.params.id,
-      user: req.user._id,
+      _id: storyId,
       status: "active",
+      expiresAt: {
+        $gt: new Date(),
+      },
     });
 
     if (!story) {
       return res.status(404).json({
         success: false,
-        message: "Story not found",
+        message: "Story not available",
       });
     }
 
     /*
-     * Keep the document for analytics/history.
-     * Mark it as deleted instead of physically removing it.
+     * IMPORTANT:
+     * Check Story privacy before allowing
+     * the user to react.
+     *
+     * This supports:
+     * - Public
+     * - Followers Only
+     * - Close Friends
      */
-    story.status = "deleted";
-    story.deletedAt = new Date();
+    const allowedToView = await canViewStory(
+      story,
+      req.user._id
+    );
 
-    await story.save();
+    if (!allowedToView) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not allowed to interact with this story",
+      });
+    }
+
+    /*
+     * Check whether this user already reacted.
+     */
+    const existing =
+      await StoryReaction.findOne({
+        story: storyId,
+        user: req.user._id,
+      });
+
+    if (existing) {
+      /*
+       * User already has a reaction.
+       *
+       * Changing the reaction does NOT increase
+       * the total reaction count.
+       */
+      existing.reaction = reaction;
+
+      await existing.save();
+    } else {
+      /*
+       * Create a new reaction.
+       */
+      await StoryReaction.create({
+        story: storyId,
+        user: req.user._id,
+        reaction,
+      });
+
+      /*
+       * Increase total reaction count.
+       */
+      await Story.findByIdAndUpdate(
+        storyId,
+        {
+          $inc: {
+            likesCount: 1,
+          },
+        }
+      );
+    }
+
+    /*
+     * Send real-time analytics update.
+     */
+    await emitReactionAnalytics(storyId);
 
     return res.status(200).json({
       success: true,
-      message: "Story deleted successfully",
+      reaction,
     });
   } catch (error) {
-    console.error("Delete story error:", error);
+    console.error(
+      "Story reaction error:",
+      error
+    );
 
     return res.status(500).json({
       success: false,
       message:
-        error.message || "Failed to delete story",
+        error.message ||
+        "Failed to react to story",
     });
   }
 };
+
+/*
+ * REMOVE STORY REACTION
+ *
+ * DELETE /api/stories/:storyId/reaction
+ */
+export const removeStoryReaction = async (
+  req,
+  res
+) => {
+  try {
+    /*
+     * Authentication check.
+     */
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const { storyId } = req.params;
+
+    /*
+     * Find the Story first.
+     *
+     * We check that it is still active and
+     * non-expired before modifying the reaction.
+     */
+    const story = await Story.findOne({
+      _id: storyId,
+      status: "active",
+      expiresAt: {
+        $gt: new Date(),
+      },
+    });
+
+    if (!story) {
+      return res.status(404).json({
+        success: false,
+        message: "Story not available",
+      });
+    }
+
+    /*
+     * Check Story privacy.
+     */
+    const allowedToView = await canViewStory(
+      story,
+      req.user._id
+    );
+
+    if (!allowedToView) {
+      return res.status(403).json({
+        success: false,
+        message:
+          "You are not allowed to interact with this story",
+      });
+    }
+
+    /*
+     * Find and delete the user's reaction.
+     */
+    const deleted =
+      await StoryReaction.findOneAndDelete({
+        story: storyId,
+        user: req.user._id,
+      });
+
+    if (!deleted) {
+      return res.status(404).json({
+        success: false,
+        message: "Reaction not found",
+      });
+    }
+
+    /*
+     * Decrease reaction count.
+     *
+     * $max prevents the value from becoming
+     * negative if old data is inconsistent.
+     */
+    await Story.findByIdAndUpdate(
+      storyId,
+      {
+        $inc: {
+          likesCount: -1,
+        },
+      }
+    );
+
+    /*
+     * Send real-time analytics update.
+     */
+    await emitReactionAnalytics(storyId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Reaction removed",
+    });
+  } catch (error) {
+    console.error(
+      "Remove story reaction error:",
+      error
+    );
+
+    return res.status(500).json({
+      success: false,
+      message:
+        error.message ||
+        "Failed to remove reaction",
+    });
+  }
+};
+
