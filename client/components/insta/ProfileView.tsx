@@ -28,26 +28,54 @@ import PostModal from "./PostModal";
 import axiosInstance from "@/lib/axios";
 import StoryHighlights from "./StoryHighlights";
 
-type Tab = "posts" | "reels" | "saved" | "tagged";
+type Tab =
+  | "posts"
+  | "reels"
+  | "saved"
+  | "tagged";
 
-const ProfileView = ({ user, isOwnProfile }: any) => {
+const ProfileView = ({
+  user,
+  isOwnProfile,
+}: any) => {
   const router = useRouter();
 
-  const [activeTab, setActiveTab] = useState<Tab>("posts");
+  const [activeTab, setActiveTab] =
+    useState<Tab>("posts");
 
-  const [following, setFollowing] = useState(
-    user.user.followingCount
-  );
+  /*
+   * Following should be a boolean.
+   *
+   * The old code used:
+   *
+   * useState(user.user.followingCount)
+   *
+   * which is a number and causes incorrect
+   * Following/Follow behavior.
+   */
+  const [following, setFollowing] =
+    useState<boolean>(
+      Boolean(
+        user.user.isFollowing ??
+          user.user.following
+      )
+    );
 
-  const [followerCount, setFollowerCount] = useState(
-    user.user.followersCount
-  );
+  const [followerCount, setFollowerCount] =
+    useState<number>(
+      user.user.followersCount || 0
+    );
 
   const [selectedPost, setSelectedPost] =
     useState<Post | null>(null);
 
-  const posts = user.posts;
+  const posts = user.posts || [];
 
+  /*
+   * ============================================================
+   * FOLLOW / UNFOLLOW
+   * ============================================================
+   */
   const handleFollowToggle = async () => {
     try {
       if (following) {
@@ -58,7 +86,8 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
         setFollowing(false);
 
         setFollowerCount(
-          (prev: number) => prev - 1
+          (prev: number) =>
+            Math.max(0, prev - 1)
         );
       } else {
         await axiosInstance.post(
@@ -68,14 +97,23 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
         setFollowing(true);
 
         setFollowerCount(
-          (prev: number) => prev + 1
+          (prev: number) =>
+            prev + 1
         );
       }
     } catch (error) {
-      console.log(error);
+      console.error(
+        "Follow toggle error:",
+        error
+      );
     }
   };
 
+  /*
+   * ============================================================
+   * PROFILE TABS
+   * ============================================================
+   */
   const tabs = [
     {
       id: "posts" as Tab,
@@ -109,13 +147,16 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
   return (
     <div className="bg-ig-surface md:bg-ig-ig min-h-screen">
 
-      {/* Mobile top header */}
+      {/* ======================================================
+          MOBILE TOP HEADER
+      ====================================================== */}
 
       <header className="md:hidden fixed top-0 left-0 right-0 bg-ig-surface border-b border-ig-border z-50 h-11 flex items-center justify-between px-3">
 
         <button
           onClick={() => router.back()}
           className="p-1 text-ig-text active:opacity-60 transition-opacity"
+          aria-label="Go back"
         >
           <ChevronLeft
             size={24}
@@ -142,7 +183,10 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
         </div>
 
-        <button className="p-1 text-ig-text active:opacity-60 transition-opacity">
+        <button
+          className="p-1 text-ig-text active:opacity-60 transition-opacity"
+          aria-label="More options"
+        >
           <MoreHorizontal
             size={22}
             strokeWidth={1.5}
@@ -151,17 +195,25 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
       </header>
 
+      {/* ======================================================
+          SIDEBAR
+      ====================================================== */}
+
       <Sidebar />
 
       <div className="md:pl-18 xl:pl-61 pt-11 md:pt-0 pb-14 md:pb-0">
 
-        <div className="max-w-[233.75] mx-auto px-4 py-6 md:py-8">
+        <div className="max-w-233.75 mx-auto px-4 py-6 md:py-8">
 
-          {/* Profile header */}
+          {/* ==================================================
+              PROFILE HEADER
+          ================================================== */}
 
-          <div className="flex gap-5 md:gap-16 items-start mb-5 md:mb-10">
+          <div className="flex gap-5 md:gap-16 items-start mb-5 md:mb-8">
 
-            {/* Avatar */}
+            {/* =================================================
+                AVATAR
+            ================================================= */}
 
             <div className="shrink-0">
 
@@ -184,8 +236,12 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
                 <div className="rounded-full bg-ig-surface p-0.75">
 
                   <img
-                    src={user.user.profilePicture}
-                    alt={user.user.username}
+                    src={
+                      user.user.profilePicture
+                    }
+                    alt={
+                      user.user.username
+                    }
                     className="w-19.25 h-19.25 md:w-37.5 md:h-37.5 rounded-full object-cover"
                   />
 
@@ -195,11 +251,15 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
             </div>
 
-            {/* Info */}
+            {/* =================================================
+                PROFILE INFORMATION
+            ================================================= */}
 
             <div className="flex-1 min-w-0 pt-1 md:pt-3">
 
-              {/* Username row */}
+              {/* ===============================================
+                  USERNAME
+              =============================================== */}
 
               <div className="flex items-center gap-2 mb-3">
 
@@ -220,20 +280,32 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
               </div>
 
-              {/* Action buttons */}
+              {/* ===============================================
+                  ACTION BUTTONS
+              =============================================== */}
 
               {isOwnProfile ? (
                 <div className="flex items-center gap-2 mb-4 flex-wrap">
 
-                  <button className="flex-1 sm:flex-none px-4 py-1.75 text-sm font-semibold text-ig-text bg-ig-hover rounded-lg hover:bg-ig-border transition-colors text-center">
+                  <button
+                    type="button"
+                    className="flex-1 sm:flex-none px-4 py-1.75 text-sm font-semibold text-ig-text bg-ig-hover rounded-lg hover:bg-ig-border transition-colors text-center"
+                  >
                     Edit profile
                   </button>
 
-                  <button className="flex-1 sm:flex-none px-4 py-1.75 text-sm font-semibold text-ig-text bg-ig-hover rounded-lg hover:bg-ig-border transition-colors text-center">
+                  <button
+                    type="button"
+                    className="flex-1 sm:flex-none px-4 py-1.75 text-sm font-semibold text-ig-text bg-ig-hover rounded-lg hover:bg-ig-border transition-colors text-center"
+                  >
                     View archive
                   </button>
 
-                  <button className="p-1.75 text-ig-text hover:bg-ig-hover rounded-lg transition-colors">
+                  <button
+                    type="button"
+                    className="p-1.75 text-ig-text hover:bg-ig-hover rounded-lg transition-colors"
+                    aria-label="Settings"
+                  >
                     <Settings
                       size={20}
                       strokeWidth={1.5}
@@ -245,7 +317,10 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
                 <div className="flex items-center gap-2 mb-4 flex-wrap">
 
                   <button
-                    onClick={handleFollowToggle}
+                    type="button"
+                    onClick={
+                      handleFollowToggle
+                    }
                     className={`flex-1 sm:flex-none flex items-center justify-center gap-1.5 px-4 py-1.75 text-sm font-semibold rounded-lg transition-colors ${
                       following
                         ? "bg-ig-hover text-ig-text hover:bg-ig-border"
@@ -255,45 +330,61 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
                     {following ? (
                       <>
-                        <UserCheck size={15} />
+                        <UserCheck
+                          size={15}
+                        />
                         Following
                       </>
                     ) : (
                       <>
-                        <UserPlus size={15} />
+                        <UserPlus
+                          size={15}
+                        />
                         Follow
                       </>
                     )}
 
                   </button>
 
-                  <button className="flex-1 sm:flex-none px-4 py-1.75 text-sm font-semibold text-ig-text bg-ig-hover rounded-lg hover:bg-ig-border transition-colors text-center">
+                  <button
+                    type="button"
+                    className="flex-1 sm:flex-none px-4 py-1.75 text-sm font-semibold text-ig-text bg-ig-hover rounded-lg hover:bg-ig-border transition-colors text-center"
+                  >
                     Message
                   </button>
 
-                  <button className="p-1.75 text-ig-text bg-ig-hover rounded-lg hover:bg-ig-border transition-colors">
-                    <MoreHorizontal size={20} />
+                  <button
+                    type="button"
+                    className="p-1.75 text-ig-text bg-ig-hover rounded-lg hover:bg-ig-border transition-colors"
+                    aria-label="More options"
+                  >
+                    <MoreHorizontal
+                      size={20}
+                    />
                   </button>
 
                 </div>
               )}
 
-              {/* Story Highlights */}
-
-              {isOwnProfile && <StoryHighlights />}
-
-              {/* Stats — desktop only */}
+              {/* ===============================================
+                  DESKTOP STATS
+              =============================================== */}
 
               <div className="hidden md:flex items-center gap-8 mb-4">
 
                 <div className="text-sm text-ig-text">
+
                   <span className="font-semibold">
                     {posts.length}
                   </span>{" "}
                   posts
+
                 </div>
 
-                <button className="text-sm text-ig-text hover:opacity-70">
+                <button
+                  type="button"
+                  className="text-sm text-ig-text hover:opacity-70"
+                >
 
                   <span className="font-semibold">
                     {formatLikeCount(
@@ -304,11 +395,15 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
                 </button>
 
-                <button className="text-sm text-ig-text hover:opacity-70">
+                <button
+                  type="button"
+                  className="text-sm text-ig-text hover:opacity-70"
+                >
 
                   <span className="font-semibold">
                     {formatLikeCount(
-                      user.user.followingCount
+                      user.user.followingCount ||
+                        0
                     )}
                   </span>{" "}
                   following
@@ -317,7 +412,9 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
               </div>
 
-              {/* Bio — desktop */}
+              {/* ===============================================
+                  DESKTOP BIO
+              =============================================== */}
 
               <div className="hidden md:block">
 
@@ -333,12 +430,20 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
                 {user.user.website && (
                   <a
-                    href={`https://${user.user.website}`}
+                    href={
+                      user.user.website.startsWith(
+                        "http"
+                      )
+                        ? user.user.website
+                        : `https://${user.user.website}`
+                    }
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-sm font-semibold text-ig-blue hover:underline mt-0.5 block"
                   >
-                    {user.user.website}
+                    {
+                      user.user.website
+                    }
                   </a>
                 )}
 
@@ -348,7 +453,9 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
           </div>
 
-          {/* Bio — mobile */}
+          {/* ==================================================
+              MOBILE BIO
+          ================================================== */}
 
           <div className="md:hidden mb-4 -mt-1">
 
@@ -364,7 +471,13 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
             {user.user.website && (
               <a
-                href={`https://${user.user.website}`}
+                href={
+                  user.user.website.startsWith(
+                    "http"
+                  )
+                    ? user.user.website
+                    : `https://${user.user.website}`
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm font-semibold text-ig-blue mt-0.5 block"
@@ -375,7 +488,9 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
           </div>
 
-          {/* Stats row — mobile */}
+          {/* ==================================================
+              MOBILE STATS
+          ================================================== */}
 
           <div className="md:hidden flex justify-around py-3 border-y border-ig-border mb-5">
 
@@ -384,95 +499,88 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
                 label: "posts",
                 value: posts.length,
               },
+
               {
                 label: "followers",
                 value: followerCount,
               },
+
               {
                 label: "following",
-                value: user.user.followingCount,
+                value:
+                  user.user.followingCount ||
+                  0,
               },
-            ].map(({ label, value }) => (
+            ].map(
+              ({
+                label,
+                value,
+              }) => (
 
-              <button
-                key={label}
-                className="flex flex-col items-center gap-0.5"
-              >
-
-                <span className="text-sm font-semibold text-ig-text">
-                  {formatLikeCount(value)}
-                </span>
-
-                <span className="text-xs text-ig-text">
-                  {label}
-                </span>
-
-              </button>
-
-            ))}
-
-          </div>
-
-          {/* Existing static story highlights */}
-
-          <div className="flex gap-4 overflow-x-auto scrollbar-hide pb-2 mb-5 md:mb-8 -mx-4 px-4">
-
-            {["Travel", "Food", "Work", "Family"].map(
-              (highlight) => (
-
-                <div
-                  key={highlight}
-                  className="flex flex-col items-center gap-2 shrink-0"
+                <button
+                  key={label}
+                  type="button"
+                  className="flex flex-col items-center gap-0.5"
                 >
 
-                  <div className="w-15.5 h-15.5 md:w-16 md:h-16 rounded-full border-2 border-ig-border flex items-center justify-center bg-ig-bg cursor-pointer hover:opacity-80 transition-opacity overflow-hidden">
-
-                    <div className="w-full h-full rounded-full bg-linear-to-br from-[#f09433] via-[#dc2743] to-[#bc1888] opacity-20" />
-
-                  </div>
-
-                  <span className="text-xs text-ig-text truncate w-15.5 text-center">
-                    {highlight}
+                  <span className="text-sm font-semibold text-ig-text">
+                    {formatLikeCount(
+                      value
+                    )}
                   </span>
 
-                </div>
+                  <span className="text-xs text-ig-text">
+                    {label}
+                  </span>
+
+                </button>
 
               )
             )}
 
-            {isOwnProfile && (
-              <div className="flex flex-col items-center gap-2 shrink-0">
-
-                <div className="w-15.5 h-15.5 md:w-16 md:h-16 rounded-full border-2 border-dashed border-ig-border flex items-center justify-center cursor-pointer hover:border-ig-muted transition-colors">
-
-                  <span className="text-2xl text-ig-muted font-light leading-none">
-                    +
-                  </span>
-
-                </div>
-
-                <span className="text-xs text-ig-text">
-                  New
-                </span>
-
-              </div>
-            )}
-
           </div>
 
-          {/* Tabs */}
+          {/* ==================================================
+              STORY HIGHLIGHTS
+              
+              IMPORTANT:
+              The old static Travel/Food/Work/Family
+              section has been completely removed.
+              
+              StoryHighlights is now rendered ONCE here,
+              outside the profile information column.
+          ================================================== */}
+
+          {isOwnProfile && (
+            <div className="w-full mb-6 md:mb-8">
+
+              <StoryHighlights />
+
+            </div>
+          )}
+
+          {/* ==================================================
+              PROFILE TABS
+          ================================================== */}
 
           <div className="border-t border-ig-border -mx-4">
 
             <div className="flex justify-center gap-8 md:gap-12">
 
               {tabs.map(
-                ({ id, icon: Icon, label }) => (
+                ({
+                  id,
+                  icon: Icon,
+                  label,
+                }) => (
 
                   <button
                     key={id}
+                    type="button"
                     onClick={() =>
-                      setActiveTab(id)
+                      setActiveTab(
+                        id
+                      )
                     }
                     className={`flex items-center gap-1.5 py-3 border-t -mt-px text-[11px] font-semibold uppercase tracking-widest transition-colors ${
                       activeTab === id
@@ -503,11 +611,15 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
           </div>
 
-          {/* Post grid */}
+          {/* ==================================================
+              POSTS
+          ================================================== */}
 
-          {activeTab === "posts" && (
+          {activeTab ===
+            "posts" && (
             <>
-              {posts.length === 0 ? (
+              {posts.length ===
+              0 ? (
 
                 <div className="flex flex-col items-center py-20 gap-4">
 
@@ -565,57 +677,71 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
                 <div className="grid grid-cols-3 gap-0.75 -mx-4 mt-0.75">
 
-                  {posts.map((post: any) => (
+                  {posts.map(
+                    (post: any) => (
 
-                    <button
-                      key={post._id}
-                      onClick={() =>
-                        setSelectedPost(post)
-                      }
-                      className="relative aspect-square overflow-hidden group bg-ig-hover"
-                    >
+                      <button
+                        key={
+                          post._id
+                        }
+                        type="button"
+                        onClick={() =>
+                          setSelectedPost(
+                            post
+                          )
+                        }
+                        className="relative aspect-square overflow-hidden group bg-ig-hover"
+                      >
 
-                      <img
-                        src={post.media[0]?.url}
-                        alt=""
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
+                        <img
+                          src={
+                            post
+                              .media?.[0]
+                              ?.url
+                          }
+                          alt=""
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
 
-                      <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6">
+                        <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex items-center justify-center gap-6">
 
-                        <div className="flex items-center gap-1.5 text-white font-semibold">
+                          <div className="flex items-center gap-1.5 text-white font-semibold">
 
-                          <Heart
-                            size={20}
-                            className="fill-white text-white"
-                          />
+                            <Heart
+                              size={20}
+                              className="fill-white text-white"
+                            />
 
-                          <span className="text-sm">
-                            {formatLikeCount(
-                              post.likesCount
-                            )}
-                          </span>
+                            <span className="text-sm">
+                              {formatLikeCount(
+                                post.likesCount ||
+                                  0
+                              )}
+                            </span>
+
+                          </div>
+
+                          <div className="flex items-center gap-1.5 text-white font-semibold">
+
+                            <MessageCircle
+                              size={20}
+                              className="fill-white text-white"
+                            />
+
+                            <span className="text-sm">
+                              {
+                                post.commentsCount
+                              }
+                            </span>
+
+                          </div>
 
                         </div>
 
-                        <div className="flex items-center gap-1.5 text-white font-semibold">
+                      </button>
 
-                          <MessageCircle
-                            size={20}
-                            className="fill-white text-white"
-                          />
-
-                          <span className="text-sm">
-                            {post.commentsCount}
-                          </span>
-
-                        </div>
-
-                      </div>
-
-                    </button>
-
-                  ))}
+                    )
+                  )}
 
                 </div>
 
@@ -623,36 +749,53 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
             </>
           )}
 
-          {/* Empty states */}
+          {/* ==================================================
+              EMPTY STATES
+          ================================================== */}
 
-          {(activeTab === "reels" ||
-            activeTab === "saved" ||
-            activeTab === "tagged") && (
+          {(
+            [
+              "reels",
+              "saved",
+              "tagged",
+            ] as Tab[]
+          ).includes(
+            activeTab
+          ) && (
 
             <div className="flex flex-col items-center py-20 gap-3">
 
               <div className="w-16 h-16 rounded-full border-2 border-ig-text flex items-center justify-center">
 
-                {activeTab === "reels" && (
+                {activeTab ===
+                  "reels" && (
                   <Film
                     size={28}
-                    strokeWidth={1.5}
+                    strokeWidth={
+                      1.5
+                    }
                     className="text-ig-text"
                   />
                 )}
 
-                {activeTab === "saved" && (
+                {activeTab ===
+                  "saved" && (
                   <Bookmark
                     size={28}
-                    strokeWidth={1.5}
+                    strokeWidth={
+                      1.5
+                    }
                     className="text-ig-text"
                   />
                 )}
 
-                {activeTab === "tagged" && (
+                {activeTab ===
+                  "tagged" && (
                   <Tag
                     size={28}
-                    strokeWidth={1.5}
+                    strokeWidth={
+                      1.5
+                    }
                     className="text-ig-text"
                   />
                 )}
@@ -661,26 +804,32 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
               <p className="text-2xl font-semibold text-ig-text">
 
-                {activeTab === "reels" &&
+                {activeTab ===
+                  "reels" &&
                   "No Reels Yet"}
 
-                {activeTab === "saved" &&
+                {activeTab ===
+                  "saved" &&
                   "Save"}
 
-                {activeTab === "tagged" &&
+                {activeTab ===
+                  "tagged" &&
                   "Photos of You"}
 
               </p>
 
               <p className="text-sm text-ig-muted text-center max-w-55">
 
-                {activeTab === "reels" &&
+                {activeTab ===
+                  "reels" &&
                   "Reels you share will appear here."}
 
-                {activeTab === "saved" &&
+                {activeTab ===
+                  "saved" &&
                   "Save photos and videos that you want to see again."}
 
-                {activeTab === "tagged" &&
+                {activeTab ===
+                  "tagged" &&
                   "When people tag you in photos and videos, they'll appear here."}
 
               </p>
@@ -693,16 +842,26 @@ const ProfileView = ({ user, isOwnProfile }: any) => {
 
       </div>
 
+      {/* ======================================================
+          MOBILE NAVIGATION
+      ====================================================== */}
+
       <MobileNav />
 
-      {/* Post modal */}
+      {/* ======================================================
+          POST MODAL
+      ====================================================== */}
 
       {selectedPost && (
         <PostModal
-          post={selectedPost}
+          post={
+            selectedPost
+          }
           posts={posts}
           onClose={() =>
-            setSelectedPost(null)
+            setSelectedPost(
+              null
+            )
           }
         />
       )}
