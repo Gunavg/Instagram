@@ -1,42 +1,58 @@
 import mongoose from "mongoose";
 
-const storyHighlightSchema = new mongoose.Schema(
-  {
-    owner: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
-      index: true,
-    },
+const storyHighlightSchema =
+  new mongoose.Schema(
+    {
+      owner: {
+        type:
+          mongoose.Schema.Types.ObjectId,
 
-    title: {
-      type: String,
-      required: true,
-      trim: true,
-      maxlength: 50,
-    },
+        ref: "User",
 
-    coverUrl: {
-      type: String,
-      default: "",
-    },
+        required: true,
 
-    stories: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Story",
+        index: true,
       },
-    ],
-  },
+
+      title: {
+        type: String,
+
+        required: true,
+
+        trim: true,
+
+        maxlength: 50,
+      },
+
+      coverUrl: {
+        type: String,
+
+        default: "",
+      },
+
+      stories: [
+        {
+          type:
+            mongoose.Schema.Types.ObjectId,
+
+          ref: "Story",
+        },
+      ],
+    },
+    {
+      timestamps: true,
+    }
+  );
+
+/*
+ * Fast profile highlight retrieval.
+ */
+storyHighlightSchema.index(
   {
-    timestamps: true,
+    owner: 1,
+    createdAt: -1,
   }
 );
-
-storyHighlightSchema.index({
-  owner: 1,
-  createdAt: -1,
-});
 
 export default mongoose.model(
   "StoryHighlight",
