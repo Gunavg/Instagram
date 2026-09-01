@@ -44,75 +44,99 @@ const ProfileView = ({
     useState<Tab>("posts");
 
   /*
-   * Following should be a boolean.
+   * ----------------------------------------------------------
+   * FOLLOWING STATE
+   * ----------------------------------------------------------
    *
-   * The old code used:
-   *
-   * useState(user.user.followingCount)
-   *
-   * which is a number and causes incorrect
-   * Following/Follow behavior.
+   * isFollowing / following may not exist in every
+   * response, so safely fall back to false.
    */
   const [following, setFollowing] =
     useState<boolean>(
       Boolean(
-        user.user.isFollowing ??
-          user.user.following
+        user?.user?.isFollowing ??
+          user?.user?.following ??
+          false
       )
     );
 
+  /*
+   * ----------------------------------------------------------
+   * FOLLOWER COUNT
+   * ----------------------------------------------------------
+   */
   const [followerCount, setFollowerCount] =
     useState<number>(
-      user.user.followersCount || 0
+      Number(
+        user?.user?.followersCount || 0
+      )
     );
 
+  /*
+   * ----------------------------------------------------------
+   * SELECTED POST
+   * ----------------------------------------------------------
+   */
   const [selectedPost, setSelectedPost] =
     useState<Post | null>(null);
 
-  const posts = user.posts || [];
+  /*
+   * ----------------------------------------------------------
+   * SAFE POSTS ARRAY
+   * ----------------------------------------------------------
+   */
+  const posts = Array.isArray(
+    user?.posts
+  )
+    ? user.posts
+    : [];
 
   /*
-   * ============================================================
+   * ==========================================================
    * FOLLOW / UNFOLLOW
-   * ============================================================
+   * ==========================================================
    */
-  const handleFollowToggle = async () => {
-    try {
-      if (following) {
-        await axiosInstance.delete(
-          `/api/follow/${user.user._id}`
-        );
+  const handleFollowToggle =
+    async () => {
+      try {
+        if (following) {
+          await axiosInstance.delete(
+            `/api/follow/${user.user._id}`
+          );
 
-        setFollowing(false);
+          setFollowing(false);
 
-        setFollowerCount(
-          (prev: number) =>
-            Math.max(0, prev - 1)
-        );
-      } else {
-        await axiosInstance.post(
-          `/api/follow/${user.user._id}`
-        );
+          setFollowerCount(
+            (previous) =>
+              Math.max(
+                0,
+                previous - 1
+              )
+          );
+        } else {
+          await axiosInstance.post(
+            `/api/follow/${user.user._id}`
+          );
 
-        setFollowing(true);
+          setFollowing(true);
 
-        setFollowerCount(
-          (prev: number) =>
-            prev + 1
+          setFollowerCount(
+            (previous) =>
+              previous + 1
+          );
+        }
+      } catch (error) {
+        console.error(
+          "Follow toggle error:",
+          error
         );
       }
-    } catch (error) {
-      console.error(
-        "Follow toggle error:",
-        error
-      );
-    }
-  };
+    };
 
   /*
-   * ============================================================
+   * ==========================================================
    * PROFILE TABS
-   * ============================================================
+   * ==========================================================
    */
   const tabs = [
     {
@@ -144,6 +168,21 @@ const ProfileView = ({
     },
   ];
 
+  /*
+   * ==========================================================
+   * SAFETY CHECK
+   * ==========================================================
+   */
+  if (!user?.user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-ig-surface">
+        <p className="text-sm text-ig-text">
+          User not found.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-ig-surface md:bg-ig-ig min-h-screen">
 
@@ -154,7 +193,10 @@ const ProfileView = ({
       <header className="md:hidden fixed top-0 left-0 right-0 bg-ig-surface border-b border-ig-border z-50 h-11 flex items-center justify-between px-3">
 
         <button
-          onClick={() => router.back()}
+          type="button"
+          onClick={() =>
+            router.back()
+          }
           className="p-1 text-ig-text active:opacity-60 transition-opacity"
           aria-label="Go back"
         >
@@ -176,6 +218,7 @@ const ProfileView = ({
               height="13"
               viewBox="0 0 24 24"
               className="text-[#0095f6] fill-current"
+              aria-label="Verified"
             >
               <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1.177 14.232l-3.536-3.536 1.414-1.414 2.122 2.121 4.596-4.596 1.414 1.414-5.01 5.011z" />
             </svg>
@@ -184,6 +227,7 @@ const ProfileView = ({
         </div>
 
         <button
+          type="button"
           className="p-1 text-ig-text active:opacity-60 transition-opacity"
           aria-label="More options"
         >
@@ -229,7 +273,7 @@ const ProfileView = ({
                         background:
                           "hsl(var(--ig-border))",
                       }
-                    : {}
+                    : undefined
                 }
               >
 
@@ -237,7 +281,8 @@ const ProfileView = ({
 
                   <img
                     src={
-                      user.user.profilePicture
+                      user.user
+                        .profilePicture
                     }
                     alt={
                       user.user.username
@@ -273,6 +318,7 @@ const ProfileView = ({
                     height="18"
                     viewBox="0 0 24 24"
                     className="text-[#0095f6] fill-current shrink-0 hidden md:block"
+                    aria-label="Verified"
                   >
                     <path d="M12 2C6.477 2 2 6.477 2 12s4.477 10 10 10 10-4.477 10-10S17.523 2 12 2zm-1.177 14.232l-3.536-3.536 1.414-1.414 2.122 2.121 4.596-4.596 1.414 1.414-5.01 5.011z" />
                   </svg>
@@ -402,8 +448,11 @@ const ProfileView = ({
 
                   <span className="font-semibold">
                     {formatLikeCount(
-                      user.user.followingCount ||
-                        0
+                      Number(
+                        user.user
+                          .followingCount ||
+                          0
+                      )
                     )}
                   </span>{" "}
                   following
@@ -419,12 +468,18 @@ const ProfileView = ({
               <div className="hidden md:block">
 
                 <p className="text-sm font-semibold text-ig-text">
-                  {user.user.fullName}
+                  {
+                    user.user
+                      .fullName
+                  }
                 </p>
 
                 {user.user.bio && (
                   <p className="text-sm text-ig-text whitespace-pre-line mt-0.5">
-                    {user.user.bio}
+                    {
+                      user.user
+                        .bio
+                    }
                   </p>
                 )}
 
@@ -432,7 +487,10 @@ const ProfileView = ({
                   <a
                     href={
                       user.user.website.startsWith(
-                        "http"
+                        "http://"
+                      ) ||
+                      user.user.website.startsWith(
+                        "https://"
                       )
                         ? user.user.website
                         : `https://${user.user.website}`
@@ -442,7 +500,8 @@ const ProfileView = ({
                     className="text-sm font-semibold text-ig-blue hover:underline mt-0.5 block"
                   >
                     {
-                      user.user.website
+                      user.user
+                        .website
                     }
                   </a>
                 )}
@@ -460,12 +519,18 @@ const ProfileView = ({
           <div className="md:hidden mb-4 -mt-1">
 
             <p className="text-sm font-semibold text-ig-text">
-              {user.user.fullName}
+              {
+                user.user
+                  .fullName
+              }
             </p>
 
             {user.user.bio && (
               <p className="text-sm text-ig-text whitespace-pre-line mt-0.5 leading-snug">
-                {user.user.bio}
+                {
+                  user.user
+                    .bio
+                }
               </p>
             )}
 
@@ -473,7 +538,10 @@ const ProfileView = ({
               <a
                 href={
                   user.user.website.startsWith(
-                    "http"
+                    "http://"
+                  ) ||
+                  user.user.website.startsWith(
+                    "https://"
                   )
                     ? user.user.website
                     : `https://${user.user.website}`
@@ -482,7 +550,10 @@ const ProfileView = ({
                 rel="noopener noreferrer"
                 className="text-sm font-semibold text-ig-blue mt-0.5 block"
               >
-                {user.user.website}
+                {
+                  user.user
+                    .website
+                }
               </a>
             )}
 
@@ -494,61 +565,65 @@ const ProfileView = ({
 
           <div className="md:hidden flex justify-around py-3 border-y border-ig-border mb-5">
 
-            {[
-              {
-                label: "posts",
-                value: posts.length,
-              },
+            <button
+              type="button"
+              className="flex flex-col items-center gap-0.5"
+            >
+              <span className="text-sm font-semibold text-ig-text">
+                {formatLikeCount(
+                  posts.length
+                )}
+              </span>
 
-              {
-                label: "followers",
-                value: followerCount,
-              },
+              <span className="text-xs text-ig-text">
+                posts
+              </span>
+            </button>
 
-              {
-                label: "following",
-                value:
-                  user.user.followingCount ||
-                  0,
-              },
-            ].map(
-              ({
-                label,
-                value,
-              }) => (
+            <button
+              type="button"
+              className="flex flex-col items-center gap-0.5"
+            >
+              <span className="text-sm font-semibold text-ig-text">
+                {formatLikeCount(
+                  followerCount
+                )}
+              </span>
 
-                <button
-                  key={label}
-                  type="button"
-                  className="flex flex-col items-center gap-0.5"
-                >
+              <span className="text-xs text-ig-text">
+                followers
+              </span>
+            </button>
 
-                  <span className="text-sm font-semibold text-ig-text">
-                    {formatLikeCount(
-                      value
-                    )}
-                  </span>
+            <button
+              type="button"
+              className="flex flex-col items-center gap-0.5"
+            >
+              <span className="text-sm font-semibold text-ig-text">
+                {formatLikeCount(
+                  Number(
+                    user.user
+                      .followingCount ||
+                      0
+                  )
+                )}
+              </span>
 
-                  <span className="text-xs text-ig-text">
-                    {label}
-                  </span>
-
-                </button>
-
-              )
-            )}
+              <span className="text-xs text-ig-text">
+                following
+              </span>
+            </button>
 
           </div>
 
           {/* ==================================================
-              STORY HIGHLIGHTS
+              REAL STORY HIGHLIGHTS
               
-              IMPORTANT:
-              The old static Travel/Food/Work/Family
-              section has been completely removed.
+              This is the ONLY Highlights component.
               
-              StoryHighlights is now rendered ONCE here,
-              outside the profile information column.
+              The old hard-coded:
+              Travel / Food / Work / Family / New
+              section has been removed.
           ================================================== */}
 
           {isOwnProfile && (
@@ -612,7 +687,7 @@ const ProfileView = ({
           </div>
 
           {/* ==================================================
-              POSTS
+              POSTS TAB
           ================================================== */}
 
           {activeTab ===
@@ -695,9 +770,9 @@ const ProfileView = ({
 
                         <img
                           src={
-                            post
-                              .media?.[0]
-                              ?.url
+                            post.media?.[0]
+                              ?.url ||
+                            ""
                           }
                           alt=""
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
@@ -714,8 +789,10 @@ const ProfileView = ({
 
                             <span className="text-sm">
                               {formatLikeCount(
-                                post.likesCount ||
-                                  0
+                                Number(
+                                  post.likesCount ||
+                                    0
+                                )
                               )}
                             </span>
 
@@ -729,9 +806,10 @@ const ProfileView = ({
                             />
 
                             <span className="text-sm">
-                              {
-                                post.commentsCount
-                              }
+                              {Number(
+                                post.commentsCount ||
+                                  0
+                              )}
                             </span>
 
                           </div>
@@ -750,7 +828,7 @@ const ProfileView = ({
           )}
 
           {/* ==================================================
-              EMPTY STATES
+              REELS / SAVED / TAGGED EMPTY STATES
           ================================================== */}
 
           {(
