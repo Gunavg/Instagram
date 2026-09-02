@@ -54,6 +54,22 @@ type StoryGroup = {
   stories: Story[];
 };
 
+type ViewerStory = {
+  _id: string;
+
+  media: StoryMedia[];
+
+  createdAt: string;
+
+  expiresAt: string;
+
+  viewsCount?: number;
+
+  uniqueViewersCount?: number;
+
+  completedViewsCount?: number;
+};
+
 /* =========================================================
    STORY RING
 ========================================================= */
