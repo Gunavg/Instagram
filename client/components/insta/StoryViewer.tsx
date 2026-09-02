@@ -1010,26 +1010,7 @@ export default function StoryViewer({
           )}
         </div>
         
-        <div className="flex items-center gap-3 mt-2 text-xs text-white/80">
-  <span className="inline-flex items-center gap-1">
-    <Eye size={14} />
-
-    {Number(
-      currentStory.viewsCount ?? 0
-    )}
-
-    views
-  </span>
-
-  {isOwner && (
-    <span>
-      {Number(
-        currentStory.uniqueViewersCount ?? 0
-      )}{" "}
-      unique viewers
-    </span>
-  )}
-</div>
+        
         {/* ==================================================
             STORY HEADER
         ================================================== */}
@@ -1065,24 +1046,23 @@ export default function StoryViewer({
     {isOwner && (
       <>
         {/* Story views */}
-        <div
-          className="flex items-center gap-1.5
-                     text-white text-xs
-                     bg-black/40
-                     rounded-full
-                     px-3 py-1.5"
-        >
-          <Eye size={14} />
+        <div className="flex items-center gap-3 mt-2 text-xs text-white/85">
+  <span className="inline-flex items-center gap-1">
+    <Eye size={14} />
 
-          <span>
-            {Number(
-              currentStory.viewsCount ?? 0
-            )}
-          </span>
-
-          <span>
-            views
-          </span>
+    {Number(
+      currentStory.viewsCount ?? 0
+    )}{" "}
+    views
+  </span>
+          {isOwner && (
+    <span>
+      {Number(
+        currentStory.uniqueViewersCount ?? 0
+      )}{" "}
+      unique viewers
+    </span>
+  )}
         </div>
 
         {/* Analytics */}
