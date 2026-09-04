@@ -149,10 +149,9 @@ export default function SettingsPage() {
   const verificationNeedsPhone = selected !== "fr";
 
   return (
-    <main className="min-h-screen bg-ig-bg text-ig-text md:pl-[72px] xl:pl-[244px]">
-      <div className="mx-auto w-full max-w-[935px] px-0 sm:px-4 md:px-6 py-0 sm:py-8">
+    <main className="min-h-screen bg-ig-bg text-ig-text md:pl-18 xl:pl-61">
+      <div className="mx-auto w-full max-w-233.75 px-0 py-0 sm:px-4 sm:py-8 md:px-6">
         <div className="overflow-hidden border-x border-ig-border bg-ig-surface sm:rounded-xl sm:border">
-          {/* Header */}
           <header className="flex items-center gap-3 border-b border-ig-border px-5 py-4 sm:px-6">
             <button
               type="button"
@@ -169,7 +168,6 @@ export default function SettingsPage() {
           </header>
 
           <div className="divide-y divide-ig-border">
-            {/* Language */}
             <section className="p-5 sm:p-6">
               <div className="mb-5 flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ig-hover">
@@ -177,9 +175,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h2 className="font-semibold">{t("language")}</h2>
-                  <p className="mt-1 text-sm text-ig-muted">
-                    Choose the language you want to use across the app.
-                  </p>
+                  <p className="mt-1 text-sm text-ig-muted">Choose the language you want to use across the app.</p>
                   <p className="mt-1 text-xs text-ig-muted">
                     Current language: <span className="font-medium text-ig-text">{currentLanguage?.nativeLabel}</span>
                   </p>
@@ -197,9 +193,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={() => setSelected(item.code)}
                       className={`flex w-full items-center justify-between rounded-xl border px-4 py-3 text-left transition ${
-                        chosen
-                          ? "border-ig-text bg-ig-hover"
-                          : "border-ig-border hover:bg-ig-hover"
+                        chosen ? "border-ig-text bg-ig-hover" : "border-ig-border hover:bg-ig-hover"
                       }`}
                     >
                       <div className="min-w-0">
@@ -242,7 +236,6 @@ export default function SettingsPage() {
               )}
             </section>
 
-            {/* Mobile */}
             <section className="p-5 sm:p-6">
               <div className="mb-5 flex items-start gap-3">
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-ig-hover">
@@ -250,9 +243,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h2 className="font-semibold">{t("mobileNumber")}</h2>
-                  <p className="mt-1 text-sm text-ig-muted">
-                    Add a mobile number for secure language verification.
-                  </p>
+                  <p className="mt-1 text-sm text-ig-muted">Add a mobile number for secure language verification.</p>
                 </div>
               </div>
 
@@ -268,9 +259,7 @@ export default function SettingsPage() {
                 autoComplete="tel"
                 className="w-full rounded-xl border border-ig-border bg-ig-bg px-4 py-3 text-sm outline-none transition focus:border-ig-text"
               />
-              <p className="mt-2 text-xs text-ig-muted">
-                Use an international format, for example +91 9876543210.
-              </p>
+              <p className="mt-2 text-xs text-ig-muted">Use an international format, for example +91 9876543210.</p>
 
               <button
                 type="button"
@@ -282,7 +271,6 @@ export default function SettingsPage() {
               </button>
             </section>
 
-            {/* OTP */}
             {showOtp && (
               <section className="bg-ig-bg p-5 sm:p-6">
                 <div className="mx-auto max-w-lg rounded-2xl border border-ig-border bg-ig-surface p-5 sm:p-6">
