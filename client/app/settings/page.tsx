@@ -18,7 +18,6 @@ export default function SettingsPage() {
   const [selected, setSelected] = useState<LanguageCode>(language);
   const [otp, setOtp] = useState("");
   const [destination, setDestination] = useState("");
-  const [deliveryMethod, setDeliveryMethod] = useState<"email" | "sms" | "">("");
   const [showOtp, setShowOtp] = useState(false);
   const [seconds, setSeconds] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -82,7 +81,6 @@ export default function SettingsPage() {
       }
 
       setDestination(res.data.destination || "");
-      setDeliveryMethod(res.data.deliveryMethod || "");
       setShowOtp(true);
       setOtp("");
       setSeconds(res.data.expiresInSeconds || OTP_SECONDS);
@@ -301,15 +299,16 @@ export default function SettingsPage() {
                       type="button"
                       onClick={verifyCode}
                       disabled={loading || otp.length !== 6 || seconds === 0}
-                      className="flex-1 rounded-lg bg-ig-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex-1 rounded-lg bg-ig-blue px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                      {loading ? "Verifying…" : t("verify")}
+                      {loading ? "Submitting…" : "Submit"}
                     </button>
+
                     <button
                       type="button"
                       onClick={resend}
                       disabled={seconds > OTP_SECONDS - 60}
-                      className="flex-1 rounded-lg border border-ig-border px-5 py-2.5 text-sm font-semibold transition hover:bg-ig-hover disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex-1 rounded-lg border border-ig-border px-5 py-3 text-sm font-semibold transition hover:bg-ig-hover disabled:cursor-not-allowed disabled:opacity-50"
                     >
                       {t("resend")}
                     </button>
