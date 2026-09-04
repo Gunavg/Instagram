@@ -299,7 +299,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={verifyCode}
                       disabled={loading || otp.length !== 6 || seconds === 0}
-                      className="flex-1 rounded-lg bg-ig-blue px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex-1 rounded-lg bg-[#0095f6] px-5 py-3 text-sm font-semibold !text-white shadow-sm transition hover:bg-[#0086e0] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:!text-gray-700 disabled:opacity-100"
                     >
                       {loading ? "Submitting…" : "Submit"}
                     </button>
