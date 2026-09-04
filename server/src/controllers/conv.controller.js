@@ -4,7 +4,7 @@ import { io } from "../socket.js";
 export const createConversation = async (req, res) => {
   try {
     const { receiverId } = req.body;
-    if (!Array.isArray(receiverId) || receiverId.length === 0) {
+    if (!Array.isArray(receiverId)) {
       return res.status(400).json({
         success: false,
         message: "Receiver ids are required",
@@ -14,12 +14,20 @@ export const createConversation = async (req, res) => {
     const receierIds = [
       ...new Set(receiverId.filter((id) => id.toString() !== currentUserId)),
     ];
+
+    /*
+     * A user with no followed accounts has no conversation
+     * recipients yet. This is a valid empty state, not a bad
+     * request, so return an empty conversation list instead
+     * of producing a 400 that the Messages page cannot use.
+     */
     if (!receierIds.length) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid Receiver",
+      return res.status(200).json({
+        success: true,
+        conversations: [],
       });
     }
+
     const exisitingconversation = await Conversation.find({
       isGroup: false,
       participants: currentUserId,
