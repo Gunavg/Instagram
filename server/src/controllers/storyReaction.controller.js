@@ -303,6 +303,13 @@ export const removeStoryReaction =
 
       /*
        * Delete reaction.
+       *
+       * Removal is intentionally idempotent. The viewer can
+       * move between stories while it is open, so the UI may
+       * occasionally request a removal after the reaction for
+       * that story has already been removed. In that case the
+       * desired final state is already achieved, so return 200
+       * instead of treating it as an application error.
        */
       const deleted =
         await StoryReaction.findOneAndDelete(
@@ -316,10 +323,11 @@ export const removeStoryReaction =
         );
 
       if (!deleted) {
-        return res.status(404).json({
-          success: false,
+        return res.status(200).json({
+          success: true,
           message:
-            "Reaction not found",
+            "Reaction already removed",
+          removed: false,
         });
       }
 
@@ -356,6 +364,7 @@ export const removeStoryReaction =
         success: true,
         message:
           "Reaction removed",
+        removed: true,
       });
     } catch (error) {
       console.error(

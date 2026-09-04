@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+
 const userSchema = new mongoose.Schema(
   {
     username: {
@@ -18,6 +19,11 @@ const userSchema = new mongoose.Schema(
       unique: true,
       index: true,
     },
+    phoneNumber: {
+      type: String,
+      default: "",
+      trim: true,
+    },
     password: {
       type: String,
       required: true,
@@ -34,6 +40,11 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "other",
       enum: ["male", "female", "other"],
+    },
+    language: {
+      type: String,
+      enum: ["en", "es", "hi", "pt", "zh", "fr"],
+      default: "en",
     },
     followersCount: { type: Number, default: 0 },
     followingCount: { type: Number, default: 0 },
