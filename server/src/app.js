@@ -11,7 +11,7 @@ import conversationRoutes from "./routes/conv.route.js";
 import closeFriendRoutes from "./routes/closeFriend.routes.js";
 import storyHighlightRoutes from "./routes/storyHighlight.routes.js";
 import languageRoutes from "./routes/language.routes.js";
-import subscriptionRoutes from "./routes/subscription.routes.js";
+import subscriptionRoutes, { stripeWebhook } from "./routes/subscription.routes.js";
 
 dotenv.config();
 const app = express();
@@ -21,8 +21,8 @@ app.use(cors({
   credentials: true,
 }));
 
-// Stripe signs the raw request body. This route must be registered before express.json().
-app.use("/api/subscription/webhook", subscriptionRoutes);
+// Stripe requires the exact raw request body for signature verification.
+app.post("/api/subscription/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
