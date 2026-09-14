@@ -3,38 +3,22 @@ import http from "http";
 import app from "./app.js";
 import connectDB from "./config/db.js";
 import { startStoryExpirationJob } from "./jobs/storyExpiration.job.js";
+import { startSubscriptionRenewalJob } from "./jobs/subscriptionRenewal.job.js";
 import { initSocket } from "./socket.js";
 
 const PORT = process.env.PORT || 5000;
-
 const server = http.createServer(app);
-
 initSocket(server);
 
 const startServer = async () => {
   try {
-    /*
-     * Connect to MongoDB first.
-     */
     await connectDB();
-
-    /*
-     * Start Story expiration job only once.
-     *
-     * The previous code started this job twice:
-     * - once inside startServer()
-     * - once again after startServer()
-     *
-     * Starting it once prevents duplicate intervals.
-     */
     startStoryExpirationJob();
+    startSubscriptionRenewalJob();
 
-    /*
-     * Start HTTP server.
-     */
     server.listen(PORT, () => {
       console.log("--------------------------------");
-      console.log(`🚀 Server Running`);
+      console.log("🚀 Server Running");
       console.log(`🌍 http://localhost:${PORT}`);
       console.log("--------------------------------");
     });
@@ -45,4 +29,3 @@ const startServer = async () => {
 };
 
 startServer();
-
