@@ -12,11 +12,10 @@ import {
 const router = express.Router();
 
 router.get("/plans", getPlans);
-router.post("/webhook", express.raw({ type: "application/json" }), stripeWebhook);
-router.use(protect);
-router.get("/me", getMySubscription);
-router.post("/checkout", createSubscriptionCheckout);
-router.post("/verify", verifySubscriptionCheckout);
-router.post("/cancel", cancelSubscription);
+router.get("/me", protect, getMySubscription);
+router.post("/checkout", protect, createSubscriptionCheckout);
+router.post("/verify", protect, verifySubscriptionCheckout);
+router.post("/cancel", protect, cancelSubscription);
 
+export { stripeWebhook };
 export default router;
