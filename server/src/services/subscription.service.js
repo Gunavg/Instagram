@@ -3,7 +3,7 @@ import Subscription from "../models/Subscription.model.js";
 import Payment from "../models/Payment.model.js";
 import User from "../models/User.model.js";
 import { SUBSCRIPTION_PLANS } from "../config/subscriptionPlans.js";
-import { sendSubscriptionEmail } from "./notification.service.js";
+import { sendSubscriptionEmail } from "./subscriptionEmail.service.js";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "", {
   apiVersion: "2025-07-30.basil",
@@ -18,17 +18,12 @@ export const assertStripeConfigured = () => {
   }
 };
 
-export const priceIdForPlan = (plan) => ({
-  bronze: process.env.STRIPE_BRONZE_PRICE_ID,
-  silver: process.env.STRIPE_SILVER_PRICE_ID,
-  gold: process.env.STRIPE_GOLD_PRICE_ID,
-}[plan]);
+export const priceIdForPlan = (plan) => ({ bronze: process.env.STRIPE_BRONZE_PRICE_ID, silver: process.env.STRIPE_SILVER_PRICE_ID, gold: process.env.STRIPE_GOLD_PRICE_ID }[plan]);
 
 export const syncSubscriptionFromStripe = async (stripeSubscription, { sendEmail = true } = {}) => {
   const userId = stripeSubscription.metadata?.userId;
   const plan = stripeSubscription.metadata?.plan;
   if (!userId || !plan || !SUBSCRIPTION_PLANS[plan]) return null;
-
   const user = await User.findById(userId);
   if (!user) return null;
 
@@ -61,10 +56,7 @@ export const syncSubscriptionFromStripe = async (stripeSubscription, { sendEmail
 
   const isNewActivation = subscription.status === "active" && (previousStatus !== "active" || !existing);
   const isRenewal = subscription.status === "active" && previousStatus === "active" && previousPeriodEnd !== periodEnd?.getTime();
-  if (sendEmail && (isNewActivation || isRenewal)) {
-    await sendSubscriptionEmail({ user, subscription, eventType: isRenewal ? "renewal" : "payment" });
-  }
-
+  if (sendEmail && (isNewActivation || isRenewal)) await sendSubscriptionEmail({ user, subscription, eventType: isRenewal ? "renewal" : "payment" });
   return subscription;
 };
 
@@ -97,21 +89,13 @@ export const createCheckoutSession = async ({ user, plan, origin }) => {
     { upsert: true, new: true },
   );
 
-  await Payment.create({
-    user: user._id,
-    subscription: subscription._id,
-    plan,
-    amount: SUBSCRIPTION_PLANS[plan].amount,
-    currency: "inr",
-    stripeCheckoutSessionId: session.id,
-  });
-
+  await Payment.create({ user: user._id, subscription: subscription._id, plan, amount: SUBSCRIPTION_PLANS[plan].amount, currency: "inr", stripeCheckoutSessionId: session.id });
   return session;
 };
 
 export const verifyCheckoutSession = async (sessionId, userId) => {
   assertStripeConfigured();
-  const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ["subscription", "invoice"] });
+  const session = await stripe.checkout.sessions.retrieve(sessionId, { expand: ["subscription"] });
   if (session.client_reference_id !== userId.toString()) throw new Error("This payment does not belong to the current user.");
   return session;
 };
@@ -127,11 +111,7 @@ export const cancelUserSubscription = async (userId) => {
 export const clearExpiredSubscription = async (subscription) => {
   if (!subscription || subscription.plan === "free") return subscription;
   if (subscription.currentPeriodEnd && subscription.currentPeriodEnd <= new Date() && subscription.status !== "active") {
-    return Subscription.findOneAndUpdate(
-      { user: subscription.user },
-      { plan: "free", status: "active", stripeSubscriptionId: "", stripePriceId: "", nextRenewalDate: null, currentPeriodStart: null, currentPeriodEnd: null },
-      { new: true },
-    );
+    return Subscription.findOneAndUpdate({ user: subscription.user }, { plan: "free", status: "active", stripeSubscriptionId: "", stripePriceId: "", nextRenewalDate: null, currentPeriodStart: null, currentPeriodEnd: null }, { new: true });
   }
   return subscription;
 };
