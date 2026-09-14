@@ -11,24 +11,25 @@ import conversationRoutes from "./routes/conv.route.js";
 import closeFriendRoutes from "./routes/closeFriend.routes.js";
 import storyHighlightRoutes from "./routes/storyHighlight.routes.js";
 import languageRoutes from "./routes/language.routes.js";
+import subscriptionRoutes from "./routes/subscription.routes.js";
 
 dotenv.config();
 const app = express();
 
-app.use(
-  cors({
-    origin: [
-      "http://localhost:3000",
-      "https://instagram-clone-pink.vercel.app",
-    ],
-    credentials: true,
-  }),
-);
+app.use(cors({
+  origin: ["http://localhost:3000", "https://instagram-clone-pink.vercel.app"],
+  credentials: true,
+}));
+
+// Stripe signs the raw request body. This route must be registered before express.json().
+app.use("/api/subscription/webhook", subscriptionRoutes);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/api/story-highlights", storyHighlightRoutes);
 app.use("/api/auth", authRoutes);
 app.use("/api/language", languageRoutes);
+app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/follow", followRoutes);
@@ -39,4 +40,5 @@ app.use("/api/close-friends", closeFriendRoutes);
 app.get("/", (req, res) => {
   res.status(200).json({ success: true, message: "Instagram Clone API is running 🚀" });
 });
+
 export default app;
