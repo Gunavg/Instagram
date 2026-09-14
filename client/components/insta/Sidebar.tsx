@@ -1,5 +1,5 @@
 "use client";
-import { Home, Search, Compass, Film, MessageCircle, Heart, PlusSquare, Menu, Bookmark, Settings, Activity, Sun, Moon, LogOut } from "lucide-react";
+import { Home, Search, Compass, Film, MessageCircle, Heart, PlusSquare, Menu, Bookmark, Settings, Activity, Sun, Moon, LogOut, CreditCard } from "lucide-react";
 import { useTheme } from "@/lib/theme-context";
 import { currentUser, mockConversations } from "@/lib/mock-data";
 import { usePathname, useRouter } from "next/navigation";
@@ -51,6 +51,7 @@ const Sidebar = () => {
       </div>
       <div className="relative">
         {moreOpen && <div className="absolute bottom-14 left-0 w-62.5 bg-ig-surface rounded-2xl shadow-xl border border-ig-border overflow-hidden z-50">
+          <Link href="/subscription" className="w-full flex items-center gap-3 px-4 py-3 text-sm text-ig-text hover:bg-ig-hover transition-colors"><CreditCard size={18} />Subscription</Link>
           <Link href="/settings" className="w-full flex items-center gap-3 px-4 py-3 text-sm text-ig-text hover:bg-ig-hover transition-colors"><Settings size={18} />{t("settings")}</Link>
           <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-ig-text hover:bg-ig-hover transition-colors"><Activity size={18} />{t("activity")}</button>
           <button className="w-full flex items-center gap-3 px-4 py-3 text-sm text-ig-text hover:bg-ig-hover transition-colors"><Bookmark size={18} />{t("saved")}</button>
