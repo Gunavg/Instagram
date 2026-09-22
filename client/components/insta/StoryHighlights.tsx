@@ -121,6 +121,7 @@ const getResponseArray = <T,>(
 ========================================================= */
 
 export default function StoryHighlights() {
+  const { t } = useI18n();
   const [
     highlights,
     setHighlights,
@@ -340,7 +341,7 @@ export default function StoryHighlights() {
 
           if (!token) {
             setError(
-              "Please login again to view Story Highlights."
+              t("loginAgain")
             );
 
             return;
@@ -469,7 +470,7 @@ export default function StoryHighlights() {
               ?.status === 401
           ) {
             setError(
-              "Your login session has expired. Please login again."
+              t("loginExpired")
             );
 
             return;
@@ -482,7 +483,7 @@ export default function StoryHighlights() {
             err?.response
               ?.data
               ?.message ||
-              "Failed to load story highlights."
+              t("unableLoadHighlights")
           );
         } finally {
           setLoading(false);
@@ -537,7 +538,7 @@ export default function StoryHighlights() {
         !title.trim()
       ) {
         setError(
-          "Please enter a highlight name."
+          t("enterHighlightName")
         );
 
         return;
@@ -548,7 +549,7 @@ export default function StoryHighlights() {
         0
       ) {
         setError(
-          "Please select at least one story."
+          t("selectAtLeastOneStory")
         );
 
         return;
@@ -595,7 +596,7 @@ export default function StoryHighlights() {
             ?.status === 401
         ) {
           setError(
-            "Your login session has expired. Please login again."
+            t("loginExpired")
           );
 
           return;
@@ -605,7 +606,7 @@ export default function StoryHighlights() {
           err?.response
             ?.data
             ?.message ||
-            "Failed to create highlight."
+            t("unableCreateHighlight")
         );
       } finally {
         setCreating(false);
@@ -622,7 +623,7 @@ export default function StoryHighlights() {
     ) => {
       if (
         !window.confirm(
-          "Delete this highlight? Your Stories and analytics will not be deleted."
+          `${t("deletingHighlight")} ${t("storyDeleteAnalytics")}`
         )
       ) {
         return;
@@ -679,7 +680,7 @@ export default function StoryHighlights() {
             ?.status === 401
         ) {
           setError(
-            "Your login session has expired. Please login again."
+            t("loginExpired")
           );
 
           return;
@@ -689,7 +690,7 @@ export default function StoryHighlights() {
           err?.response
             ?.data
             ?.message ||
-            "Failed to delete highlight."
+            t("unableDeleteHighlight")
         );
       } finally {
         setDeleting(null);
@@ -1056,7 +1057,7 @@ export default function StoryHighlights() {
                 .value
             )
           }
-          placeholder="Highlight name"
+          placeholder={t("highlightName")}
           maxLength={
             50
           }

@@ -6,6 +6,7 @@ import { currentUser, getUserByUsername } from "@/lib/mock-data";
 import useAuthStore from "@/store/authStore";
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 export default function Page() {
   const params = useParams();
@@ -31,10 +32,10 @@ export default function Page() {
   }, [username]);
   // const user = getUserByUsername(username || "");
   if (loading) {
-    return <div className="flex justify-center py-10">Loading profile...</div>;
+    return <div className="flex justify-center py-10">{t("loadingProfile")}</div>;
   }
   if (!user) {
-    return <div>User not found</div>;
+    return <div>{t("userNotFound")}</div>;
   }
 
   const isOwn = user.user._id === curuser?._id;

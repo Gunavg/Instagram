@@ -40,7 +40,7 @@ export default function SettingsPage() {
     const normalized = phone.replace(/[\s()-]/g, "");
 
     if (!/^\+?[1-9]\d{7,14}$/.test(normalized)) {
-      setError("Enter a valid mobile number with country code.");
+      setError(t("validMobile"));
       return;
     }
 
@@ -54,11 +54,11 @@ export default function SettingsPage() {
       setPhone(res.data.user?.phoneNumber || normalized);
       toast.add({
         type: "success",
-        title: "Mobile number saved",
+        title: t("mobileSaved"),
         description: res.data.message,
       });
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Unable to save mobile number.");
+      setError(err?.response?.data?.message || t("unableSaveMobile"));
     } finally {
       setSavingPhone(false);
     }
@@ -86,11 +86,11 @@ export default function SettingsPage() {
       setSeconds(res.data.expiresInSeconds || OTP_SECONDS);
       toast.add({
         type: "success",
-        title: "Verification code sent",
+        title: t("codeSentSuccess"),
         description: res.data.message,
       });
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Unable to send verification code.");
+      setError(err?.response?.data?.message || t("unableSendCode"));
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ export default function SettingsPage() {
     setError("");
 
     if (!/^\d{6}$/.test(otp)) {
-      setError("Enter the 6-digit verification code.");
+      setError(t("enterOtp"));
       return;
     }
 
@@ -114,11 +114,11 @@ export default function SettingsPage() {
       setOtp("");
       toast.add({
         type: "success",
-        title: "Language updated",
+        title: t("languageUpdated"),
         description: t("languageUpdated"),
       });
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Verification failed.");
+      setError(err?.response?.data?.message || t("verificationFailed"));
     } finally {
       setLoading(false);
     }
@@ -134,11 +134,11 @@ export default function SettingsPage() {
       setOtp("");
       toast.add({
         type: "success",
-        title: "Code resent",
+        title: t("codeResent"),
         description: res.data.message,
       });
     } catch (err: any) {
-      setError(err?.response?.data?.message || "Unable to resend code.");
+      setError(err?.response?.data?.message || t("unableResend"));
     }
   };
 
@@ -155,13 +155,13 @@ export default function SettingsPage() {
               type="button"
               onClick={() => window.history.back()}
               className="rounded-full p-1.5 transition hover:bg-ig-hover"
-              aria-label="Back"
+              aria-label={t("back")}
             >
               <ChevronLeft size={22} />
             </button>
             <div>
               <h1 className="text-xl font-bold">{t("settings")}</h1>
-              <p className="mt-0.5 text-xs text-ig-muted">Manage your language and verification settings</p>
+              <p className="mt-0.5 text-xs text-ig-muted">{t("manageLanguageVerification")}</p>
             </div>
           </header>
 
@@ -173,9 +173,9 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h2 className="font-semibold">{t("language")}</h2>
-                  <p className="mt-1 text-sm text-ig-muted">Choose the language you want to use across the app.</p>
+                  <p className="mt-1 text-sm text-ig-muted">{t("chooseLanguageAcrossApp")}</p>
                   <p className="mt-1 text-xs text-ig-muted">
-                    Current language: <span className="font-medium text-ig-text">{currentLanguage?.nativeLabel}</span>
+                    {t("currentLanguage")}: <span className="font-medium text-ig-text">{currentLanguage?.nativeLabel}</span>
                   </p>
                 </div>
               </div>
@@ -213,12 +213,12 @@ export default function SettingsPage() {
                   <div className="flex gap-3">
                     <LockKeyhole size={18} className="mt-0.5 shrink-0 text-ig-muted" />
                     <div className="min-w-0">
-                      <p className="text-sm font-semibold">Verification required</p>
+                      <p className="text-sm font-semibold">{t("verification")}</p>
                       <p className="mt-1 text-xs leading-5 text-ig-muted">
                         {selectedLanguage?.nativeLabel} requires a one-time verification code.
                         {verificationNeedsPhone
-                          ? " The code will be sent to your registered mobile number."
-                          : " The code will be sent to your registered email."}
+                          ? " {t("sendToMobile")}"
+                          : " {t("sendToEmail")}"}
                       </p>
                       <button
                         type="button"
@@ -226,7 +226,7 @@ export default function SettingsPage() {
                         disabled={loading}
                         className="mt-3 rounded-lg bg-ig-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
-                        {loading ? "Sending…" : "Send verification code"}
+                        {loading ? t("sending") : t("sendVerification")}
                       </button>
                     </div>
                   </div>
@@ -241,7 +241,7 @@ export default function SettingsPage() {
                 </div>
                 <div>
                   <h2 className="font-semibold">{t("mobileNumber")}</h2>
-                  <p className="mt-1 text-sm text-ig-muted">Add a mobile number for secure language verification.</p>
+                  <p className="mt-1 text-sm text-ig-muted">{t("secureLanguageVerification")}</p>
                 </div>
               </div>
 
@@ -257,7 +257,7 @@ export default function SettingsPage() {
                 autoComplete="tel"
                 className="w-full rounded-xl border border-ig-border bg-ig-bg px-4 py-3 text-sm outline-none transition focus:border-ig-text"
               />
-              <p className="mt-2 text-xs text-ig-muted">Use an international format, for example +91 9876543210.</p>
+              <p className="mt-2 text-xs text-ig-muted">{t("useInternational")}</p>
 
               <button
                 type="button"
@@ -265,7 +265,7 @@ export default function SettingsPage() {
                 disabled={savingPhone}
                 className="mt-4 rounded-lg border border-ig-border px-5 py-2.5 text-sm font-semibold transition hover:bg-ig-hover disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {savingPhone ? "Saving…" : t("saveMobile")}
+                {savingPhone ? t("saving") : t("saveMobile")}
               </button>
             </section>
 
@@ -299,9 +299,9 @@ export default function SettingsPage() {
                       type="button"
                       onClick={verifyCode}
                       disabled={loading || otp.length !== 6 || seconds === 0}
-                      className="flex-1 rounded-lg bg-[#0095f6] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0086e0] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-700 disabled:opacity-100"
+                      className="flex-1 rounded-lg bg-[#0095f6] px-5 py-3 text-sm font-semibold !text-white shadow-sm transition hover:bg-[#0086e0] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:!text-gray-700 disabled:opacity-100"
                     >
-                      {loading ? "Submitting…" : "Submit"}
+                      {loading ? t("submitting") : t("submit")}
                     </button>
 
                     <button

@@ -131,6 +131,7 @@ export const stripeWebhook = async (req, res) => {
           );
           if (subscription && invoice.id) {
             subscription.latestInvoiceId = invoice.id;
+            subscription.latestInvoiceUrl = invoice.hosted_invoice_url || "";
             subscription.latestPaymentIntentId = payment?.stripePaymentIntentId || "";
             subscription.lastPaymentStatus = "paid";
             subscription.lastPaymentAt = payment?.paidAt || new Date();
@@ -165,6 +166,17 @@ export const stripeWebhook = async (req, res) => {
             },
             { upsert: true, new: true },
           );
+        }
+        break;
+      }
+      case "customer.subscription.deleted": {
+        const stripeSubscription = event.data.object;
+        const subscription = await syncSubscriptionFromStripe(stripeSubscription, { sendEmail: false });
+        if (subscription) {
+          subscription.status = "canceled";
+          subscription.cancelAtPeriodEnd = false;
+          subscription.canceledAt = subscription.canceledAt || new Date();
+          await subscription.save();
         }
         break;
       }

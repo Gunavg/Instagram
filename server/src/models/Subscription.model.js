@@ -23,6 +23,7 @@ const subscriptionSchema = new mongoose.Schema(
     stripeSubscriptionId: { type: String, default: "", index: true },
     stripePriceId: { type: String, default: "" },
     latestInvoiceId: { type: String, default: "" },
+    latestInvoiceUrl: { type: String, default: "" },
     latestPaymentIntentId: { type: String, default: "" },
     amount: { type: Number, default: 0 },
     currency: { type: String, default: "inr" },

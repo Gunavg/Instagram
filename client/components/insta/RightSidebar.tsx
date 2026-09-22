@@ -5,9 +5,10 @@ import Link from "next/link";
 import { useState } from "react";
 
 const RightSidebar = () => {
-  const [followed, setFollowed] = useState<Record<string, boolean>>({});
-  const toggleFollow = (id: string) => {
-    setFollowed((prev) => ({ ...prev, [id]: !prev[id] }));
+  const { t } = useI18n();
+  const [followed, set{t("follow")}ed] = useState<Record<string, boolean>>({});
+  const toggle{t("follow")} = (id: string) => {
+    set{t("follow")}ed((prev) => ({ ...prev, [id]: !prev[id] }));
   };
   return (
     <aside className="hidden lg:block w-[320px] shrink-0 pt-6">
@@ -40,7 +41,7 @@ const RightSidebar = () => {
 
       {/* Suggested */}
       <div className="flex items-center justify-between mb-3 px-1">
-        <p className="text-sm font-semibold text-ig-muted">Suggested for you</p>
+        <p className="text-sm font-semibold text-ig-muted">{t("suggested")}</p>
         <Link href="/explore" className="text-xs font-semibold text-ig-text hover:opacity-70">
           See All
         </Link>
@@ -74,19 +75,19 @@ const RightSidebar = () => {
               </div>
               <p className="text-xs text-ig-muted truncate">
                 {user.followers.length > 0
-                  ? `Followed by ${user.followers.length} people`
-                  : "Suggested for you"}
+                  ? `{t("follow")}ed by ${user.followers.length} people`
+                  : "{t("suggested")}"}
               </p>
             </div>
             <button
-              onClick={() => toggleFollow(user._id)}
+              onClick={() => toggle{t("follow")}(user._id)}
               className={`text-xs font-semibold transition-colors shrink-0 ${
                 followed[user._id]
                   ? "text-ig-text hover:opacity-70"
                   : "text-[#0095f6] hover:text-[#1877f2] dark:text-[#38b6ff] dark:hover:text-[#5cc8ff]"
               }`}
             >
-              {followed[user._id] ? "Following" : "Follow"}
+              {followed[user._id] ? "{t("following")}" : "{t("follow")}"}
             </button>
           </div>
         ))}

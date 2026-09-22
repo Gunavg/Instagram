@@ -18,6 +18,7 @@ import {
 
 import { socket } from "@/lib/socket";
 import axiosInstance from "@/lib/axios";
+import { useI18n } from "@/lib/i18n";
 
 type Viewer = {
   _id: string;
@@ -94,6 +95,7 @@ export default function StoryAnalytics({
   storyId,
   onClose,
 }: Props) {
+  const { t } = useI18n();
   const [analytics, setAnalytics] =
     useState<Analytics | null>(null);
 
@@ -124,7 +126,7 @@ export default function StoryAnalytics({
         ) {
           throw new Error(
             response.data?.message ||
-              "Failed to load analytics"
+              t("loadingAnalytics")
           );
         }
 
@@ -140,7 +142,7 @@ export default function StoryAnalytics({
         setError(
           error?.response?.data?.message ||
             error?.message ||
-            "Failed to load analytics"
+            t("loadingAnalytics")
         );
       } finally {
         setLoading(false);
@@ -328,7 +330,7 @@ export default function StoryAnalytics({
 
           <p className="text-sm text-red-500">
             {error ||
-              "Analytics unavailable."}
+              t("analyticsUnavailable")}
           </p>
 
           <button
@@ -405,7 +407,7 @@ export default function StoryAnalytics({
             icon={
               <Eye size={18} />
             }
-            label="Views"
+            label={t("views")}
             value={
               analytics.totalViews
             }
@@ -415,7 +417,7 @@ export default function StoryAnalytics({
             icon={
               <Users size={18} />
             }
-            label="Unique Viewers"
+            label={t("uniqueViewers")}
             value={
               analytics.uniqueViewers
             }
@@ -425,7 +427,7 @@ export default function StoryAnalytics({
             icon={
               <Heart size={18} />
             }
-            label="Reactions"
+            label={t("reactions")}
             value={
               analytics.reactions.total
             }
@@ -437,7 +439,7 @@ export default function StoryAnalytics({
                 size={18}
               />
             }
-            label="Replies"
+            label={t("replies")}
             value={
               analytics.replies.total
             }
@@ -449,7 +451,7 @@ export default function StoryAnalytics({
                 size={18}
               />
             }
-            label="Completion"
+            label={t("completion")}
             value={`${analytics.completionRate}%`}
           />
         </div>

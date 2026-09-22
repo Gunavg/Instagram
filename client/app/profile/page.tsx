@@ -24,13 +24,13 @@ const page = () => {
   }, [curuser]);
   // const user = getUserByUsername(username || "");
   if (loading) {
-    return <div className="flex justify-center py-10">Loading profile...</div>;
+    return <div className="flex justify-center py-10">{t("loadingProfile")}</div>;
   }
   if (!user) {
-    return <div>User not found</div>;
+    return <div>{t("userNotFound")}</div>;
   }
   if (user) return <ProfileView user={user} isOwnProfile />;
-  else return <>Loading..</>;
+  else return <>{t("loading")}</>;
 };
 
 export default page;

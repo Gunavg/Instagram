@@ -257,11 +257,9 @@ export default function StoryViewer({
         await axiosInstance.post(
           `/api/stories/${currentStory._id}/view`,
           {
-            mediaIndex:
-              targetMediaIndex ??
-              mediaIndex,
-
+            mediaIndex: targetMediaIndex ?? mediaIndex,
             completed,
+            viewSessionKey: viewSessionRef.current || undefined,
           }
         );
       } catch (error: unknown) {
@@ -532,6 +530,7 @@ export default function StoryViewer({
 
   const viewedStoryRef =
     useRef<string>("");
+  const viewSessionRef = useRef<string>("");
 
   useEffect(() => {
     if (
@@ -543,6 +542,10 @@ export default function StoryViewer({
 
     const viewKey =
       `${currentStory._id}-${mediaIndex}`;
+
+    if (mediaIndex === 0 || viewedStoryRef.current === "") {
+      viewSessionRef.current = `${currentStory._id}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    }
 
     /*
      * Avoid sending the exact same view request

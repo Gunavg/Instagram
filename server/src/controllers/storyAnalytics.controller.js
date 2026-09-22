@@ -21,38 +21,51 @@ const getOwnedStory = async (storyId, userId) => {
   );
 };
 
-const syncViewCounters = async (storyId) => {
-  const [totalViews, uniqueViewers, completedViews] = await Promise.all([
-    StoryViewEvent.countDocuments({ story: storyId }),
-    StoryView.countDocuments({ story: storyId }),
-    StoryView.countDocuments({ story: storyId, completedAt: { $ne: null } }),
-  ]);
+const updateCachedCounters = async (storyId, { totalDelta = 0, uniqueDelta = 0, completedDelta = 0 } = {}) => {
+  if (!totalDelta && !uniqueDelta && !completedDelta) {
+    const story = await Story.findById(storyId).select("viewsCount uniqueViewersCount completedViewsCount likesCount repliesCount");
+    return {
+      totalViews: story?.viewsCount || 0,
+      uniqueViewers: story?.uniqueViewersCount || 0,
+      completedViews: story?.completedViewsCount || 0,
+    };
+  }
 
-  await Story.findByIdAndUpdate(storyId, {
-    $set: {
-      viewsCount: totalViews,
-      uniqueViewersCount: uniqueViewers,
-      completedViewsCount: completedViews,
+  const story = await Story.findByIdAndUpdate(
+    storyId,
+    {
+      $inc: {
+        ...(totalDelta ? { viewsCount: totalDelta } : {}),
+        ...(uniqueDelta ? { uniqueViewersCount: uniqueDelta } : {}),
+        ...(completedDelta ? { completedViewsCount: completedDelta } : {}),
+      },
     },
-  });
+    { new: true }
+  ).select("viewsCount uniqueViewersCount completedViewsCount likesCount repliesCount");
 
-  return { totalViews, uniqueViewers, completedViews };
+  return {
+    totalViews: Math.max(0, story?.viewsCount || 0),
+    uniqueViewers: Math.max(0, story?.uniqueViewersCount || 0),
+    completedViews: Math.max(0, story?.completedViewsCount || 0),
+  };
 };
 
-const emitAnalyticsUpdate = async (storyId) => {
+const emitAnalyticsUpdate = async (storyId, counters = null) => {
   try {
-    const [story, counters] = await Promise.all([
-      Story.findById(storyId).select("likesCount repliesCount"),
-      syncViewCounters(storyId),
-    ]);
-
+    const story = await Story.findById(storyId).select("likesCount repliesCount viewsCount uniqueViewersCount completedViewsCount");
     if (!story || !io) return;
+
+    const current = counters || {
+      totalViews: story.viewsCount || 0,
+      uniqueViewers: story.uniqueViewersCount || 0,
+      completedViews: story.completedViewsCount || 0,
+    };
 
     io.to(`story-analytics:${storyId}`).emit("story-analytics-updated", {
       storyId: storyId.toString(),
-      viewsCount: counters.totalViews,
-      uniqueViewersCount: counters.uniqueViewers,
-      completedViewsCount: counters.completedViews,
+      viewsCount: current.totalViews,
+      uniqueViewersCount: current.uniqueViewers,
+      completedViewsCount: current.completedViews,
       likesCount: story.likesCount || 0,
       repliesCount: story.repliesCount || 0,
     });
@@ -166,8 +179,12 @@ export const recordStoryView = async (req, res) => {
       );
     }
 
-    const counters = await syncViewCounters(storyId);
-    await emitAnalyticsUpdate(storyId);
+    const counters = await updateCachedCounters(storyId, {
+      totalDelta: mediaIndex === 0 ? 1 : 0,
+      uniqueDelta: unique ? 1 : 0,
+      completedDelta: completionAdded ? 1 : 0,
+    });
+    await emitAnalyticsUpdate(storyId, counters);
 
     return res.status(200).json({
       success: true,
@@ -205,7 +222,7 @@ export const getStoryAnalytics = async (req, res) => {
 
     const [counters, reactionStats, replyCount, timeline, viewers] =
       await Promise.all([
-        syncViewCounters(storyObjectId),
+        updateCachedCounters(storyObjectId),
 
         StoryReaction.aggregate([
           { $match: { story: storyObjectId } },

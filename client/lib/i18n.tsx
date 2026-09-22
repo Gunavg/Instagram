@@ -13,58 +13,74 @@ export const LANGUAGES = [
 ] as const;
 
 export type LanguageCode = (typeof LANGUAGES)[number]["code"];
-
 type Dictionary = Record<string, string>;
 
+const en: Dictionary = {
+  home:"Home", search:"Search", explore:"Explore", reels:"Reels", messages:"Messages", notifications:"Notifications",
+  create:"Create", profile:"Profile", settings:"Settings", activity:"Activity", saved:"Saved", darkMode:"Dark mode",
+  lightMode:"Light mode", logout:"Log out", more:"More", subscription:"Subscription", language:"Language",
+  selectLanguage:"Select language", mobileNumber:"Mobile number", saveMobile:"Save mobile number", save:"Save",
+  cancel:"Cancel", verify:"Verify", resend:"Resend code", verification:"Verification required",
+  enterOtp:"Enter the 6-digit code", codeSent:"A verification code was sent to", expires:"Code expires in",
+  changeLanguage:"Change language", currentLanguage:"Current language",
+  addMobile:"Add your mobile number to use this language.", languageUpdated:"Language updated successfully.",
+  loadingPosts:"Loading posts...", caughtUp:"You're all caught up", caughtUpDescription:"You've seen all new posts from the past 3 days.",
+  suggested:"Suggested for you", following:"Following", follow:"Follow", like:"Like", likes:"likes", comment:"Comment",
+  addComment:"Add a comment…", you:"You", yourStory:"Your story", loadingProfile:"Loading profile...", loading:"Loading...",
+  userNotFound:"User not found", noResults:"No results found", loadingAnalytics:"Loading analytics...",
+  analyticsUnavailable:"Analytics unavailable.", tryAgain:"Try again", storyAnalytics:"Story Analytics",
+  archivedStory:"Archived Story", updating:"Updating...", views:"Views", uniqueViewers:"Unique Viewers",
+  reactions:"Reactions", replies:"Replies", completion:"Completion", completionRate:"Completion Rate",
+  reactionBreakdown:"Reaction Breakdown", noReactions:"No reactions yet.", viewTimeline:"View Timeline",
+  noViews:"No views yet.", viewers:"Viewers", shown:"shown", completed:"Completed", viewed:"Viewed",
+  analyticsUpdateNote:"Analytics update automatically when viewers view, react, or reply to this story.",
+  storyHighlights:"Story Highlights", highlightsDescription:"Keep your favorite Stories on your profile.",
+  loadingHighlights:"Loading highlights...", noHighlights:"No story highlights yet",
+  addExpiredStories:"Add your expired Stories to keep them on your profile.", createNewHighlight:"Create New Highlight",
+  highlightName:"Highlight name", selectArchivedStories:"Select archived Stories:", noArchivedStories:"No archived Stories available.",
+  storiesAppearAfterExpire:"Stories will appear here after they expire.", createHighlight:"Create Highlight",
+  deletingHighlight:"Delete highlight?", storyDeleteAnalytics:"Your Stories and analytics will not be deleted.",
+  manageLanguageVerification:"Manage your language and verification settings",
+  chooseLanguageAcrossApp:"Choose the language you want to use across the app.",
+  secureLanguageVerification:"Add a mobile number for secure language verification.",
+  validMobile:"Enter a valid mobile number with country code.",
+  mobileSaved:"Mobile number saved", unableSaveMobile:"Unable to save mobile number.",
+  sendVerification:"Send verification code", sending:"Sending…", submitting:"Submitting…", codeSentSuccess:"Verification code sent",
+  verificationFailed:"Verification failed.", unableSendCode:"Unable to send verification code.", codeResent:"Code resent",
+  unableResend:"Unable to resend code.", addMobileBeforeLanguage:"Add a registered mobile number before selecting this language.",
+  chooseSubscription:"Choose your subscription", membership:"Membership", currentPlan:"Current plan",
+  validThrough:"Valid through", cancelSubscription:"Cancel subscription", cancellationScheduled:"Cancellation scheduled",
+  paymentAvailability:"Payment availability", paymentAvailabilityText:"New subscription payments are accepted only between 5:00 AM and 11:00 AM IST. Attempts outside this window are rejected before checkout.",
+  openingPayment:"Opening payment…", choose:"Choose", includedDefault:"Included by default", planCurrent:"Your current plan",
+  postLimit:"Your plan controls how many active posts you can publish. Paid plans renew monthly.", useInternational:"Use an international format, for example +91 9876543210.", saving:"Saving…", submit:"Submit", back:"Back", sendToMobile:"The code will be sent to your registered mobile number.", sendToEmail:"The code will be sent to your registered email address.",
+};
+
+
+/* Plan/status labels used by the subscription UI. */
+Object.assign(en, {
+  freePlan:"Free Plan", bronzePlan:"Bronze Plan", silverPlan:"Silver Plan", goldPlan:"Gold Plan",
+  onePost:"1 post", threePosts:"3 posts", fivePosts:"5 posts", unlimitedPosts:"Unlimited posts",
+  freeDescription:"Get started with a basic posting allowance.",
+  bronzeDescription:"A little more room for your monthly content.",
+  silverDescription:"More posting capacity for growing creators.",
+  goldDescription:"Unlimited posts with the highest plan allowance.",
+  planWord:"Plan",
+  "planNames.free":"Free Plan", "planNames.bronze":"Bronze Plan", "planNames.silver":"Silver Plan", "planNames.gold":"Gold Plan",
+  "status.active":"Active", "status.past_due":"Past due", "status.canceled":"Canceled", "status.incomplete":"Incomplete", "status.unpaid":"Unpaid"
+});
+
 const translations: Record<LanguageCode, Dictionary> = {
-  en: {
-    home: "Home", search: "Search", messages: "Messages", profile: "Profile", settings: "Settings",
-    language: "Language", selectLanguage: "Select language", mobileNumber: "Mobile number", saveMobile: "Save mobile number",
-    save: "Save", cancel: "Cancel", verify: "Verify", resend: "Resend code", verification: "Verification required",
-    enterOtp: "Enter the 6-digit code", codeSent: "A verification code was sent to", expires: "Code expires in",
-    changeLanguage: "Change language", currentLanguage: "Current language", addMobile: "Add your mobile number to use this language.",
-    languageUpdated: "Language updated successfully.",
-  },
-  es: {
-    home: "Inicio", search: "Buscar", messages: "Mensajes", profile: "Perfil", settings: "Configuración",
-    language: "Idioma", selectLanguage: "Seleccionar idioma", mobileNumber: "Número de móvil", saveMobile: "Guardar número",
-    save: "Guardar", cancel: "Cancelar", verify: "Verificar", resend: "Reenviar código", verification: "Verificación requerida",
-    enterOtp: "Introduce el código de 6 dígitos", codeSent: "Se envió un código de verificación a", expires: "El código caduca en",
-    changeLanguage: "Cambiar idioma", currentLanguage: "Idioma actual", addMobile: "Añade tu número móvil para usar este idioma.",
-    languageUpdated: "Idioma actualizado correctamente.",
-  },
-  hi: {
-    home: "होम", search: "खोजें", messages: "संदेश", profile: "प्रोफ़ाइल", settings: "सेटिंग्स",
-    language: "भाषा", selectLanguage: "भाषा चुनें", mobileNumber: "मोबाइल नंबर", saveMobile: "मोबाइल नंबर सहेजें",
-    save: "सहेजें", cancel: "रद्द करें", verify: "सत्यापित करें", resend: "कोड फिर भेजें", verification: "सत्यापन आवश्यक है",
-    enterOtp: "6 अंकों का कोड दर्ज करें", codeSent: "सत्यापन कोड भेजा गया है", expires: "कोड समाप्त होगा",
-    changeLanguage: "भाषा बदलें", currentLanguage: "वर्तमान भाषा", addMobile: "इस भाषा का उपयोग करने के लिए मोबाइल नंबर जोड़ें।",
-    languageUpdated: "भाषा सफलतापूर्वक अपडेट हुई।",
-  },
-  pt: {
-    home: "Início", search: "Pesquisar", messages: "Mensagens", profile: "Perfil", settings: "Configurações",
-    language: "Idioma", selectLanguage: "Selecionar idioma", mobileNumber: "Número de celular", saveMobile: "Salvar número",
-    save: "Salvar", cancel: "Cancelar", verify: "Verificar", resend: "Reenviar código", verification: "Verificação necessária",
-    enterOtp: "Digite o código de 6 dígitos", codeSent: "Um código de verificação foi enviado para", expires: "O código expira em",
-    changeLanguage: "Alterar idioma", currentLanguage: "Idioma atual", addMobile: "Adicione seu número de celular para usar este idioma.",
-    languageUpdated: "Idioma atualizado com sucesso.",
-  },
-  zh: {
-    home: "主页", search: "搜索", messages: "消息", profile: "个人资料", settings: "设置",
-    language: "语言", selectLanguage: "选择语言", mobileNumber: "手机号码", saveMobile: "保存手机号码",
-    save: "保存", cancel: "取消", verify: "验证", resend: "重新发送验证码", verification: "需要验证",
-    enterOtp: "输入6位验证码", codeSent: "验证码已发送至", expires: "验证码将在以下时间后过期",
-    changeLanguage: "更改语言", currentLanguage: "当前语言", addMobile: "请添加手机号码以使用此语言。",
-    languageUpdated: "语言更新成功。",
-  },
-  fr: {
-    home: "Accueil", search: "Rechercher", messages: "Messages", profile: "Profil", settings: "Paramètres",
-    language: "Langue", selectLanguage: "Sélectionner la langue", mobileNumber: "Numéro de mobile", saveMobile: "Enregistrer le numéro",
-    save: "Enregistrer", cancel: "Annuler", verify: "Vérifier", resend: "Renvoyer le code", verification: "Vérification requise",
-    enterOtp: "Saisissez le code à 6 chiffres", codeSent: "Un code de vérification a été envoyé à", expires: "Le code expire dans",
-    changeLanguage: "Changer de langue", currentLanguage: "Langue actuelle", addMobile: "Ajoutez votre numéro mobile pour utiliser cette langue.",
-    languageUpdated: "Langue mise à jour avec succès.",
-  },
+  en,
+  es:Object.assign({...en,
+    freePlan:"Plan gratuito", bronzePlan:"Plan Bronce", silverPlan:"Plan Plata", goldPlan:"Plan Oro",
+    onePost:"1 publicación", threePosts:"3 publicaciones", fivePosts:"5 publicaciones", unlimitedPosts:"Publicaciones ilimitadas",
+    planWord:"Plan", "status.active":"Activo", "status.past_due":"Vencido", "status.canceled":"Cancelado", "status.incomplete":"Incompleto", "status.unpaid":"No pagado"
+  }),
+  hi:Object.assign({...en, freePlan:"फ्री प्लान", bronzePlan:"ब्रॉन्ज़ प्लान", silverPlan:"सिल्वर प्लान", goldPlan:"गोल्ड प्लान", onePost:"1 पोस्ट", threePosts:"3 पोस्ट", fivePosts:"5 पोस्ट", unlimitedPosts:"अनलिमिटेड पोस्ट", planWord:"प्लान", "status.active":"सक्रिय", "status.past_due":"बकाया", "status.canceled":"रद्द", "status.incomplete":"अपूर्ण", "status.unpaid":"भुगतान नहीं हुआ"}),
+  pt:Object.assign({...en, freePlan:"Plano gratuito", bronzePlan:"Plano Bronze", silverPlan:"Plano Silver", goldPlan:"Plano Gold", onePost:"1 publicação", threePosts:"3 publicações", fivePosts:"5 publicações", unlimitedPosts:"Publicações ilimitadas", planWord:"Plano", "status.active":"Ativo", "status.past_due":"Em atraso", "status.canceled":"Cancelado", "status.incomplete":"Incompleto", "status.unpaid":"Não pago"}),
+  zh:Object.assign({...en, freePlan:"免费方案", bronzePlan:"青铜方案", silverPlan:"白银方案", goldPlan:"黄金方案", onePost:"1篇帖子", threePosts:"3篇帖子", fivePosts:"5篇帖子", unlimitedPosts:"无限帖子", planWord:"方案", "status.active":"有效", "status.past_due":"逾期", "status.canceled":"已取消", "status.incomplete":"未完成", "status.unpaid":"未付款"}),
+  fr:Object.assign({...en, freePlan:"Forfait gratuit", bronzePlan:"Forfait Bronze", silverPlan:"Forfait Argent", goldPlan:"Forfait Or", onePost:"1 publication", threePosts:"3 publications", fivePosts:"5 publications", unlimitedPosts:"Publications illimitées", planWord:"Forfait", "status.active":"Actif", "status.past_due":"En retard", "status.canceled":"Annulé", "status.incomplete":"Incomplet", "status.unpaid":"Non payé"})
+
 };
 
 interface I18nContextValue {
@@ -72,7 +88,6 @@ interface I18nContextValue {
   setLanguage: (language: LanguageCode) => void;
   t: (key: string) => string;
 }
-
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
@@ -90,19 +105,25 @@ export function LanguageProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem("language", language);
   }, [language]);
 
+  // Intentional: caller invokes this only after server-side verification.
   const setLanguage = (next: LanguageCode) => {
     setLanguageState(next);
     localStorage.setItem("language", next);
     if (user) {
-      setUser({ ...user, language: next });
-      localStorage.setItem("user", JSON.stringify({ ...user, language: next }));
+      const nextUser = { ...user, language: next };
+      setUser(nextUser);
+      localStorage.setItem("user", JSON.stringify(nextUser));
     }
   };
 
-  const value = useMemo(() => ({ language, setLanguage, t: (key: string) => translations[language][key] || translations.en[key] || key }), [language, user]);
+  const value = useMemo(() => ({
+    language,
+    setLanguage,
+    t: (key: string) => translations[language][key] || en[key] || key,
+  }), [language, user]);
+
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }
-
 export const useI18n = () => {
   const context = useContext(I18nContext);
   if (!context) throw new Error("useI18n must be used inside LanguageProvider");
