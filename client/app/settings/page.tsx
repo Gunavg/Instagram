@@ -215,10 +215,8 @@ export default function SettingsPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold">{t("verification")}</p>
                       <p className="mt-1 text-xs leading-5 text-ig-muted">
-                        {selectedLanguage?.nativeLabel} requires a one-time verification code.
-                        {verificationNeedsPhone
-                          ? " {t("sendToMobile")}"
-                          : " {t("sendToEmail")}"}
+                        {selectedLanguage?.nativeLabel} requires a one-time verification code.{" "}
+                        {verificationNeedsPhone ? t("sendToMobile") : t("sendToEmail")}
                       </p>
                       <button
                         type="button"
@@ -299,7 +297,7 @@ export default function SettingsPage() {
                       type="button"
                       onClick={verifyCode}
                       disabled={loading || otp.length !== 6 || seconds === 0}
-                      className="flex-1 rounded-lg bg-[#0095f6] px-5 py-3 text-sm font-semibold !text-white shadow-sm transition hover:bg-[#0086e0] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:!text-gray-700 disabled:opacity-100"
+                      className="flex-1 rounded-lg bg-[#0095f6] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#0086e0] disabled:cursor-not-allowed disabled:bg-gray-200 disabled:text-gray-700 disabled:opacity-100"
                     >
                       {loading ? t("submitting") : t("submit")}
                     </button>

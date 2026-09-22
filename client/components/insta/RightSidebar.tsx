@@ -3,20 +3,23 @@
 import { currentUser, suggestedUsers } from "@/lib/mock-data";
 import Link from "next/link";
 import { useState } from "react";
+import { useI18n } from "@/lib/i18n";
 
 const RightSidebar = () => {
   const { t } = useI18n();
-  const [followed, set{t("follow")}ed] = useState<Record<string, boolean>>({});
-  const toggle{t("follow")} = (id: string) => {
-    set{t("follow")}ed((prev) => ({ ...prev, [id]: !prev[id] }));
+  const [followed, setFollowed] = useState<Record<string, boolean>>({});
+
+  const toggleFollow = (id: string) => {
+    setFollowed((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+
   return (
     <aside className="hidden lg:block w-[320px] shrink-0 pt-6">
       {/* Current user */}
       <div className="flex items-center gap-3 mb-5 px-1">
         <Link href="/profile">
-          <div className="w-11 h-11 rounded-full overflow-hidden story-gradient p-[2px] shrink-0">
-            <div className="w-full h-full rounded-full bg-ig-surface p-[1px]">
+          <div className="w-11 h-11 rounded-full overflow-hidden story-gradient p-0.5 shrink-0">
+            <div className="w-full h-full rounded-full bg-ig-surface p-px">
               <img
                 src={currentUser.profilePic}
                 alt={currentUser.username}
@@ -75,19 +78,19 @@ const RightSidebar = () => {
               </div>
               <p className="text-xs text-ig-muted truncate">
                 {user.followers.length > 0
-                  ? `{t("follow")}ed by ${user.followers.length} people`
-                  : "{t("suggested")}"}
+                  ? `${t("following")} by ${user.followers.length} people`
+                  : t("suggested")}
               </p>
             </div>
             <button
-              onClick={() => toggle{t("follow")}(user._id)}
+              onClick={() => toggleFollow(user._id)}
               className={`text-xs font-semibold transition-colors shrink-0 ${
                 followed[user._id]
                   ? "text-ig-text hover:opacity-70"
                   : "text-[#0095f6] hover:text-[#1877f2] dark:text-[#38b6ff] dark:hover:text-[#5cc8ff]"
               }`}
             >
-              {followed[user._id] ? "{t("following")}" : "{t("follow")}"}
+              {followed[user._id] ? t("following") : t("follow")}
             </button>
           </div>
         ))}
