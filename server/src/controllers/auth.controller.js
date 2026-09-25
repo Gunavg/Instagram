@@ -174,7 +174,20 @@ export const login = async (req, res) => {
         deviceType: context.deviceType,
         ipAddress: context.ipAddress,
       });
-      await sendOtpEmail({ to: user.email, otp, language: user.language || "en" });
+
+      try {
+        await sendOtpEmail({ to: user.email, otp, language: user.language || "en" });
+      } catch (emailError) {
+        await LoginChallenge.deleteMany({ user: user._id });
+        await logAttempt({
+          userId: user._id,
+          context,
+          status: "failed",
+          failureReason: `Chrome OTP delivery failed: ${emailError.message}`,
+          verificationMethod: "email_otp",
+        });
+        throw emailError;
+      }
 
       return res.status(200).json({
         success: true,
@@ -295,13 +308,17 @@ export const resendLoginOtp = async (req, res) => {
     if (!user?.email) return res.status(400).json({ success: false, message: "Registered email address is unavailable." });
 
     const otp = generateLoginOtp();
+
+    // Deliver the new code before replacing the currently valid challenge.
+    await sendOtpEmail({ to: user.email, otp, language: user.language || "en" });
+
     challenge.otpHash = hashLoginOtp(otp);
     challenge.expiresAt = new Date(Date.now() + LOGIN_OTP_TTL_MS);
     challenge.lastSentAt = new Date();
     challenge.attempts = 0;
     challenge.resendCount += 1;
     await challenge.save();
-    await sendOtpEmail({ to: user.email, otp, language: user.language || "en" });
+
     return res.status(200).json({ success: true, expiresInSeconds: LOGIN_OTP_TTL_MS / 1000, message: "A new verification code was sent." });
   } catch (error) {
     console.error("Login OTP resend error:", error);
