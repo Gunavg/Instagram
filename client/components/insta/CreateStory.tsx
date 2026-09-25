@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  useEffect,
   useRef,
   useState,
 } from "react";
@@ -91,13 +90,6 @@ export default function CreateStory({
   const [error, setError] =
     useState("");
 
-  useEffect(() => {
-    return () => {
-      media.forEach((item) =>
-        URL.revokeObjectURL(item.preview)
-      );
-    };
-  }, [media]);
 
   if (!open) {
     return null;
