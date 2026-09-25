@@ -17,6 +17,7 @@ export default function Page() {
   const [user, setUser] = useState<any>(null);
   const curuser = useAuthStore((state) => state.user);
   const [loading, setLoading] = useState(false);
+  const { t } = useI18n();
   useEffect(() => {
     const fetchuser = async () => {
       setLoading(true);
