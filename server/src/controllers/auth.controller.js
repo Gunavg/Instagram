@@ -278,6 +278,9 @@ export const resendLoginOtp = async (req, res) => {
     }
 
     const context = getRequestContext(req);
+    if (context.browser !== challenge.browser || context.ipAddress !== challenge.ipAddress || context.userAgent !== challenge.userAgent) {
+      return res.status(403).json({ success: false, message: "Login verification must be continued from the same browser session." });
+    }
     if (challenge.deviceType === "Mobile" && !isMobileLoginWindowOpen()) {
       return res.status(403).json({ success: false, code: "MOBILE_LOGIN_WINDOW_CLOSED", message: "Mobile login is allowed only between 10:00 AM and 1:00 PM server time." });
     }
@@ -291,8 +294,6 @@ export const resendLoginOtp = async (req, res) => {
     challenge.lastSentAt = new Date();
     challenge.attempts = 0;
     challenge.resendCount += 1;
-    challenge.userAgent = context.userAgent;
-    challenge.ipAddress = context.ipAddress;
     await challenge.save();
     await sendOtpEmail({ to: user.email, otp, language: user.language || "en" });
     return res.status(200).json({ success: true, expiresInSeconds: LOGIN_OTP_TTL_MS / 1000, message: "A new verification code was sent." });
