@@ -42,10 +42,10 @@ export default function SubscriptionPage() {
       try {
         const res = await axiosInstance.post("/api/subscription/verify", { sessionId });
         setSubscription(res.data.subscription);
-        toast.add({ type: "success", title: "Subscription activated", description: "Your payment has been verified successfully." });
+        toast.add({ type: "success", title: t("subscriptionActivated"), description: t("paymentVerified") });
         window.history.replaceState({}, "", "/subscription");
       } catch (error: any) {
-        toast.add({ type: "error", title: error?.response?.data?.message || "Payment verification failed." });
+        toast.add({ type: "error", title: error?.response?.data?.message || t("paymentVerificationFailed") });
       }
     };
     verify();
@@ -59,8 +59,8 @@ export default function SubscriptionPage() {
     } catch (error: any) {
       toast.add({
         type: "error",
-        title: error?.response?.data?.message || "Unable to start payment.",
-        description: error?.response?.data?.code === "PAYMENT_WINDOW_CLOSED" ? "Payment hours: 5:00 AM–11:00 AM IST." : undefined,
+        title: error?.response?.data?.message || t("unableStartPayment"),
+        description: error?.response?.data?.code === "PAYMENT_WINDOW_CLOSED" ? t("paymentHours") : undefined,
       });
     } finally {
       setCheckoutPlan("");
@@ -71,9 +71,9 @@ export default function SubscriptionPage() {
     try {
       const res = await axiosInstance.post("/api/subscription/cancel");
       setSubscription(res.data.subscription);
-      toast.add({ type: "success", title: "Cancellation scheduled", description: "{t("planCurrent")} remains active until the billing period ends." });
+      toast.add({ type: "success", title: t("cancellationScheduled"), description: t("planRemainsActive") });
     } catch (error: any) {
-      toast.add({ type: "error", title: error?.response?.data?.message || "Unable to cancel subscription." });
+      toast.add({ type: "error", title: error?.response?.data?.message || t("unableCancelSubscription") });
     }
   };
 
@@ -111,18 +111,18 @@ export default function SubscriptionPage() {
                 <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-ig-hover"><Icon size={22} /></div>
                 <div className="mt-5 flex items-end justify-between gap-2">
                   <h2 className="text-lg font-bold">{t(plan.nameKey)}</h2>
-                  {active && <span className="rounded-full bg-ig-text px-2.5 py-1 text-[10px] font-bold text-ig-surface">CURRENT</span>}
+                  {active && <span className="rounded-full bg-ig-text px-2.5 py-1 text-[10px] font-bold text-ig-surface">{t("current")}</span>}
                 </div>
                 <p className="mt-1 text-sm text-ig-muted">{t(plan.descriptionKey)}</p>
                 <div className="mt-5">
                   <span className="text-3xl font-bold">₹{plan.price}</span>
-                  {plan.price > 0 && <span className="text-sm text-ig-muted"> / month</span>}
+                  {plan.price > 0 && <span className="text-sm text-ig-muted"> / {t("month")}</span>}
                 </div>
                 <div className="mt-4 flex items-center gap-2 text-sm font-semibold"><Check size={17} /> {t(plan.limitKey)}</div>
                 {plan.key !== "free" && !active ? (
                   <button onClick={() => subscribe(plan.key)} disabled={checkoutPlan === plan.key || loading} className="mt-6 w-full rounded-xl bg-[#0095f6] px-4 py-3 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">{checkoutPlan === plan.key ? t("openingPayment") : `${t("choose")} ${t(plan.nameKey).replace(" " + t("planWord"), "")}`}</button>
                 ) : (
-                  <div className="mt-6 rounded-xl border border-ig-border px-4 py-3 text-center text-sm font-semibold text-ig-muted">{active ? "Your current plan" : "{t("includedDefault")}"}</div>
+                  <div className="mt-6 rounded-xl border border-ig-border px-4 py-3 text-center text-sm font-semibold text-ig-muted">{active ? t("planCurrent") : t("includedDefault")}</div>
                 )}
               </div>
             );
