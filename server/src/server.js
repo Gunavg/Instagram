@@ -4,6 +4,7 @@ import app from "./app.js";
 import connectDB from "./config/db.js";
 import { startStoryExpirationJob } from "./jobs/storyExpiration.job.js";
 import { startSubscriptionRenewalJob } from "./jobs/subscriptionRenewal.job.js";
+import { startLoginChallengeCleanupJob } from "./jobs/loginChallengeCleanup.job.js";
 import { initSocket } from "./socket.js";
 
 const PORT = process.env.PORT || 5000;
@@ -15,6 +16,7 @@ const startServer = async () => {
     await connectDB();
     startStoryExpirationJob();
     startSubscriptionRenewalJob();
+    startLoginChallengeCleanupJob();
 
     server.listen(PORT, () => {
       console.log("--------------------------------");
