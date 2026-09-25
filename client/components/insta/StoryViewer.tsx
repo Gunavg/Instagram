@@ -15,6 +15,9 @@ import {
   X,
   BarChart3,
   Eye,
+  MoreHorizontal,
+  Pause,
+  Play,
 } from "lucide-react";
 import type { ReactNode } from "react";
 
@@ -1018,7 +1021,7 @@ export default function StoryViewer({
             STORY HEADER
         ================================================== */}
 
-        <div className="absolute top-7 left-3 right-3 z-20 flex items-center justify-between">
+        <div className="absolute top-7 left-3 right-3 z-20 flex items-center justify-between px-1">
   <div className="flex items-center gap-2">
     {/* Profile image */}
     <div className="w-8 h-8 rounded-full overflow-hidden border-2 border-white">
@@ -1045,7 +1048,24 @@ export default function StoryViewer({
   </div>
 
   {/* Header actions */}
-  <div className="flex items-center gap-2">
+  <div className="flex items-center gap-1">
+    <button
+      type="button"
+      onClick={() => setPaused((value) => !value)}
+      className="flex h-9 w-9 items-center justify-center rounded-full text-white hover:bg-white/10"
+      aria-label={paused ? "Resume story" : "Pause story"}
+    >
+      {paused ? <Play size={18} fill="currentColor" /> : <Pause size={18} />}
+    </button>
+
+    <button
+      type="button"
+      className="flex h-9 w-9 items-center justify-center rounded-full text-white hover:bg-white/10"
+      aria-label="More story options"
+    >
+      <MoreHorizontal size={21} />
+    </button>
+
     {isOwner && (
       <>
         {/* Story views */}
@@ -1095,7 +1115,7 @@ export default function StoryViewer({
     <button
       type="button"
       onClick={onClose}
-      className="text-white p-2"
+      className="flex h-9 w-9 items-center justify-center rounded-full text-white hover:bg-white/10"
       aria-label="Close story"
     >
       <X size={24} />
@@ -1148,7 +1168,7 @@ export default function StoryViewer({
         ================================================== */}
 
         {!isOwner && (
-          <div className="absolute bottom-4 left-3 right-3 z-20 flex items-center gap-2">
+          <div className="absolute bottom-5 left-3 right-3 z-20 flex items-center gap-2">
             {/* Reply input */}
             <input
               value={reply}
@@ -1178,14 +1198,14 @@ export default function StoryViewer({
               }}
               maxLength={500}
               placeholder="Reply to story..."
-              className="min-w-0 flex-1 rounded-full border border-white/60 bg-black/40 px-4 py-2 text-sm text-white placeholder:text-white/70 outline-none"
+              className="min-w-0 flex-1 h-11 rounded-full border border-white/60 bg-black/35 px-4 text-sm text-white placeholder:text-white/70 outline-none backdrop-blur-sm"
             />
 
             {/* Like */}
             <button
               type="button"
               onClick={react}
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-black/40"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-white bg-black/35 backdrop-blur-sm hover:bg-white/15"
               aria-label="Like story"
             >
               <Heart
@@ -1208,7 +1228,7 @@ export default function StoryViewer({
                 !reply.trim() ||
                 sendingReply
               }
-              className="w-10 h-10 rounded-full flex items-center justify-center text-white bg-black/40 disabled:opacity-40"
+              className="w-11 h-11 rounded-full flex items-center justify-center text-white bg-black/35 backdrop-blur-sm disabled:opacity-40"
               aria-label="Send reply"
             >
               <Send size={20} />
