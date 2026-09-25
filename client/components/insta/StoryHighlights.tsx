@@ -269,24 +269,6 @@ export default function StoryHighlights() {
 
       {/* Instagram-style highlight circles */}
       <div className="flex items-start gap-5 sm:gap-7 overflow-x-auto px-1 pb-2 scrollbar-hide">
-        <button
-          type="button"
-          onClick={() => setShowCreate(true)}
-          className="w-18 shrink-0 flex flex-col items-center gap-2 group"
-          aria-label="Create new highlight"
-        >
-          <span className="w-18 h-18 rounded-full border-2 border-ig-border bg-ig-surface flex items-center justify-center group-hover:bg-ig-hover transition-colors">
-            <Plus
-              size={28}
-              strokeWidth={1.5}
-              className="text-ig-text"
-            />
-          </span>
-          <span className="max-w-18 truncate text-xs text-ig-text">
-            New
-          </span>
-        </button>
-
         {highlights.map((highlight) => {
           const firstStory =
             highlight.stories?.[0];
@@ -364,6 +346,24 @@ export default function StoryHighlights() {
             </div>
           );
         })}
+
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="w-18 shrink-0 flex flex-col items-center gap-2 group"
+          aria-label="Create new highlight"
+        >
+          <span className="w-18 h-18 rounded-full border-2 border-ig-border bg-ig-surface flex items-center justify-center group-hover:bg-ig-hover transition-colors">
+            <Plus
+              size={28}
+              strokeWidth={1.5}
+              className="text-ig-text"
+            />
+          </span>
+          <span className="max-w-18 truncate text-xs text-ig-text">
+            New
+          </span>
+        </button>
       </div>
 
       {/* Create highlight dialog */}
