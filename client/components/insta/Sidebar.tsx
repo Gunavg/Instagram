@@ -8,6 +8,7 @@ import Link from "next/link";
 import { useCreateModal } from "@/lib/createmodelcontext";
 import { toast } from "../ui/toast";
 import useAuthStore from "@/store/authStore";
+import axiosInstance from "@/lib/axios";
 import { useI18n } from "@/lib/i18n";
 
 const Sidebar = () => {
@@ -27,8 +28,17 @@ const Sidebar = () => {
     { label: t("messages"), icon: MessageCircle, href: "/messages", badge: totalUnread },
     { label: t("notifications"), icon: Heart, href: "/notifications", badge: 0 },
   ];
-  const handlelogout = () => {
-    logout();
+  const handlelogout = async () => {
+    try {
+      const refreshToken = localStorage.getItem("refreshToken");
+      if (refreshToken) {
+        await axiosInstance.post("/api/auth/logout", { refreshToken });
+      }
+    } catch (error) {
+      console.error("Logout request failed:", error);
+    } finally {
+      logout();
+    }
     toast.add({ type: "success", title: t("logoutSuccess") });
     router.push("/login");
   };
