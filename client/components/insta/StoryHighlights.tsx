@@ -17,6 +17,7 @@ import {
 } from "react";
 
 import axiosInstance from "@/lib/axios";
+import { useI18n } from "@/lib/i18n";
 import HighlightViewer from "./HighlightViewer";
 
 /* =========================================================
