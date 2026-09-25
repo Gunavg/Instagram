@@ -27,6 +27,7 @@ import MobileNav from "./MobileNav";
 import PostModal from "./PostModal";
 import axiosInstance from "@/lib/axios";
 import StoryHighlights from "./StoryHighlights";
+import LoginHistory from "./LoginHistory";
 
 type Tab =
   | "posts"
@@ -627,11 +628,15 @@ const ProfileView = ({
           ================================================== */}
 
           {isOwnProfile && (
-            <div className="w-full mb-6 md:mb-8">
+            <>
+              <div className="w-full mb-6 md:mb-8">
 
-              <StoryHighlights />
+                <StoryHighlights />
 
-            </div>
+              </div>
+
+              <LoginHistory />
+            </>
           )}
 
           {/* ==================================================
