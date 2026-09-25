@@ -239,10 +239,24 @@ export const verifyLoginOtp = async (req, res) => {
 
     if (challenge.expiresAt.getTime() <= Date.now()) {
       await challenge.deleteOne();
+      await logAttempt({
+        userId: challenge.user,
+        context,
+        status: "failed",
+        failureReason: "Chrome OTP expired",
+        verificationMethod: "email_otp",
+      });
       return res.status(400).json({ success: false, code: "OTP_EXPIRED", message: "The verification code has expired. Please log in again." });
     }
     if (challenge.attempts >= LOGIN_MAX_VERIFY_ATTEMPTS) {
       await challenge.deleteOne();
+      await logAttempt({
+        userId: challenge.user,
+        context,
+        status: "failed",
+        failureReason: "Chrome OTP verification attempt limit exceeded",
+        verificationMethod: "email_otp",
+      });
       return res.status(429).json({ success: false, code: "ATTEMPTS_EXCEEDED", message: "Too many failed attempts. Please log in again later." });
     }
     if (challenge.browser !== "Google Chrome") {
