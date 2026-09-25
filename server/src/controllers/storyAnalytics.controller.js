@@ -153,8 +153,20 @@ export const recordStoryView = async (req, res) => {
       }
     }
 
-    /* One viewing session is counted when the first media is shown. */
+    /*
+     * One viewing session is counted when the first media is shown.
+     * The client supplies a unique viewSessionKey so refreshes/retries
+     * of the same viewing session cannot inflate total view counts.
+     */
+    let sessionCounted = false;
     if (mediaIndex === 0) {
+      if (!viewSessionKey) {
+        return res.status(400).json({
+          success: false,
+          message: "A viewing session key is required for the first story view.",
+        });
+      }
+
       try {
         await StoryViewEvent.create({
           story: storyId,
@@ -164,8 +176,10 @@ export const recordStoryView = async (req, res) => {
           viewedAt: now,
           viewSessionKey,
         });
+        sessionCounted = true;
       } catch (error) {
         if (error?.code !== 11000) throw error;
+        sessionCounted = false;
       }
     }
 
@@ -188,7 +202,7 @@ export const recordStoryView = async (req, res) => {
     }
 
     const counters = await updateCachedCounters(storyId, {
-      totalDelta: mediaIndex === 0 ? 1 : 0,
+      totalDelta: sessionCounted ? 1 : 0,
       uniqueDelta: unique ? 1 : 0,
       completedDelta: completionAdded ? 1 : 0,
     });
@@ -196,7 +210,7 @@ export const recordStoryView = async (req, res) => {
 
     return res.status(200).json({
       success: true,
-      counted: mediaIndex === 0,
+      counted: sessionCounted,
       unique,
       completionAdded,
       ...counters,
