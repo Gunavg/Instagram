@@ -1,11 +1,13 @@
 import express from "express";
-import { getProfileByUsername, getLoginHistory, login, me, register, resendLoginOtp, verifyLoginOtp } from "../controllers/auth.controller.js";
+import { getProfileByUsername, getLoginHistory, login, logout, me, refreshSession, register, resendLoginOtp, verifyLoginOtp } from "../controllers/auth.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
 
 const router = express.Router();
 
 router.post("/register", register);
 router.post("/login", login);
+router.post("/refresh", refreshSession);
+router.post("/logout", logout);
 router.post("/login/verify", verifyLoginOtp);
 router.post("/login/resend", resendLoginOtp);
 router.get("/me", protect, me);
