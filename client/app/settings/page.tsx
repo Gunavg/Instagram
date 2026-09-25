@@ -215,7 +215,7 @@ export default function SettingsPage() {
                     <div className="min-w-0">
                       <p className="text-sm font-semibold">{t("verification")}</p>
                       <p className="mt-1 text-xs leading-5 text-ig-muted">
-                        {selectedLanguage?.nativeLabel} requires a one-time verification code.{" "}
+                        {selectedLanguage?.nativeLabel} {t("requiresVerificationCode")}{" "}
                         {verificationNeedsPhone ? t("sendToMobile") : t("sendToEmail")}
                       </p>
                       <button
@@ -277,7 +277,7 @@ export default function SettingsPage() {
                     <div>
                       <h2 className="font-semibold">{t("verification")}</h2>
                       <p className="mt-1 text-sm text-ig-muted">
-                        Enter the 6-digit code sent to <strong className="text-ig-text">{destination}</strong>.
+                        {t("enterOtp")} <strong className="text-ig-text">{destination}</strong>.
                       </p>
                     </div>
                   </div>
