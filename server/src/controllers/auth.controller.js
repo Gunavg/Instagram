@@ -42,11 +42,11 @@ const getRequestContext = (req) => {
   };
 };
 
-const logAttempt = async ({ userId = null, context, status, failureReason = "", verificationMethod = "none" }) => {
-  if (!userId) return;
+const logAttempt = async ({ userId = null, attemptedEmail = "", context, status, failureReason = "", verificationMethod = "none" }) => {
   try {
     await LoginHistory.create({
-      user: userId,
+      user: userId || null,
+      attemptedEmail: String(attemptedEmail || "").trim().toLowerCase(),
       browser: context.browser,
       operatingSystem: context.operatingSystem,
       deviceType: context.deviceType,
@@ -112,6 +112,12 @@ export const login = async (req, res) => {
 
     const user = await User.findOne({ email }).select("+password +refreshToken");
     if (!user) {
+      await logAttempt({
+        attemptedEmail: email,
+        context,
+        status: "failed",
+        failureReason: "Invalid email or account not found",
+      });
       return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
@@ -191,7 +197,7 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
-    await logAttempt({ userId: null, context, status: "failed", failureReason: "Server error during login" });
+    await logAttempt({ attemptedEmail: email, context, status: "failed", failureReason: "Server error during login" });
     return res.status(500).json({ success: false, message: "Unable to complete login right now." });
   }
 };
