@@ -2,7 +2,8 @@ import mongoose from "mongoose";
 
 const loginHistorySchema = new mongoose.Schema(
   {
-    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null, index: true },
+    attemptedEmail: { type: String, default: "", trim: true, index: true },
     browser: { type: String, required: true, trim: true },
     operatingSystem: { type: String, required: true, trim: true },
     deviceType: { type: String, enum: ["Desktop", "Laptop", "Mobile"], required: true },
