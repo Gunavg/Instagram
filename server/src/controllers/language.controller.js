@@ -32,6 +32,15 @@ const sendCode = async ({ user, language, method, destination }) => {
   const otpHash = hashOtp(otp);
   const now = new Date();
 
+  // Deliver the OTP before replacing the current verification record.
+  // If the external email/SMS provider fails, the previous valid code
+  // remains usable instead of leaving a broken challenge in the database.
+  if (method === "email") {
+    await sendOtpEmail({ to: destination, otp, language });
+  } else {
+    await sendOtpSms({ to: destination, otp, language });
+  }
+
   await LanguageVerification.deleteMany({ user: user._id });
   await LanguageVerification.create({
     user: user._id,
@@ -41,12 +50,6 @@ const sendCode = async ({ user, language, method, destination }) => {
     expiresAt: new Date(Date.now() + OTP_TTL_MS),
     lastSentAt: now,
   });
-
-  if (method === "email") {
-    await sendOtpEmail({ to: destination, otp, language });
-  } else {
-    await sendOtpSms({ to: destination, otp, language });
-  }
 };
 
 export const requestLanguageChange = async (req, res) => {
@@ -114,6 +117,22 @@ export const resendLanguageOtp = async (req, res) => {
     if (!delivery) return res.status(400).json({ success: false, code: "PHONE_REQUIRED", message: "Add a registered mobile number first." });
 
     const otp = generateOtp();
+
+    // Send first; only replace the active code after successful delivery.
+    if (delivery.method === "email") {
+      await sendOtpEmail({
+        to: delivery.destination,
+        otp,
+        language: verification.language,
+      });
+    } else {
+      await sendOtpSms({
+        to: delivery.destination,
+        otp,
+        language: verification.language,
+      });
+    }
+
     verification.otpHash = hashOtp(otp);
     verification.expiresAt = new Date(Date.now() + OTP_TTL_MS);
     verification.lastSentAt = new Date();
@@ -121,9 +140,6 @@ export const resendLanguageOtp = async (req, res) => {
     verification.resendCount += 1;
     verification.deliveryMethod = delivery.method;
     await verification.save();
-
-    if (delivery.method === "email") await sendOtpEmail({ to: delivery.destination, otp, language: verification.language });
-    else await sendOtpSms({ to: delivery.destination, otp, language: verification.language });
 
     return res.status(200).json({ success: true, expiresInSeconds: OTP_TTL_MS / 1000, message: "A new verification code was sent." });
   } catch (error) {
