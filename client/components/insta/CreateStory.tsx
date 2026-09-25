@@ -291,7 +291,7 @@ export default function CreateStory({
       aria-modal="true"
       aria-label="Create Story"
     >
-      <div className="relative w-full max-w-6xl h-[min(92vh,760px)] bg-ig-surface border border-ig-border rounded-2xl overflow-hidden shadow-2xl flex flex-col">
+      <div className="relative w-full max-w-6xl h-[min(92vh,760px)] bg-white dark:bg-[#121212] border border-ig-border rounded-2xl overflow-hidden shadow-2xl flex flex-col opacity-100">
         {/* HEADER */}
         <header className="h-16 shrink-0 px-4 sm:px-6 border-b border-ig-border flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -324,7 +324,7 @@ export default function CreateStory({
         </header>
 
         {/* CONTENT */}
-        <div className="flex-1 min-h-0 flex flex-col lg:flex-row">
+        <div className="flex-1 min-h-0 flex flex-col lg:flex-row bg-white dark:bg-[#121212]">
           {/* PREVIEW */}
           <section className="flex-1 min-h-0 bg-black/5 dark:bg-black/20 p-4 sm:p-6 flex items-center justify-center">
             {activeMedia ? (
@@ -439,7 +439,7 @@ export default function CreateStory({
           </section>
 
           {/* SETTINGS */}
-          <aside className="w-full lg:w-95 xl:w-102.5 shrink-0 border-t lg:border-t-0 lg:border-l border-ig-border overflow-y-auto">
+          <aside className="w-full lg:w-95 xl:w-102.5 shrink-0 border-t lg:border-t-0 lg:border-l border-ig-border bg-white dark:bg-[#121212] overflow-y-auto">
             <div className="p-5 sm:p-6 space-y-6">
               {/* MEDIA UPLOAD */}
               <div>
