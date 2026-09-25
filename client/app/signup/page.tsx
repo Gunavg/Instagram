@@ -76,7 +76,7 @@ const PAGE = () => {
     try {
       const res = await axiosInstance.post("/api/auth/register", formData);
       if (res.data.success) {
-        login({ user: res.data.user, token: res.data.accessToken });
+        login({ user: res.data.user, token: res.data.accessToken, refreshToken: res.data.refreshToken });
         toast.add({
           type: "success",
           title: "Signup Successful",
