@@ -205,6 +205,11 @@ export const verifyLoginOtp = async (req, res) => {
     const challenge = await LoginChallenge.findOne({ user: req.body?.userId });
     if (!challenge) return res.status(400).json({ success: false, message: "No pending Chrome verification. Please log in again." });
 
+    if (challenge.browser !== context.browser || challenge.ipAddress !== context.ipAddress || challenge.userAgent !== context.userAgent) {
+      await logAttempt({ userId: challenge.user, context, status: "failed", failureReason: "Login verification context changed", verificationMethod: "email_otp" });
+      return res.status(403).json({ success: false, message: "Login verification must be completed from the same browser session." });
+    }
+
     if (challenge.expiresAt.getTime() <= Date.now()) {
       await challenge.deleteOne();
       return res.status(400).json({ success: false, code: "OTP_EXPIRED", message: "The verification code has expired. Please log in again." });
