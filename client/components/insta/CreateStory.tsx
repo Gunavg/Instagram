@@ -286,7 +286,7 @@ export default function CreateStory({
 
   return (
     <div
-      className="fixed inset-0 z-[100] bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
+      className="fixed inset-0 z-100 bg-black/80 backdrop-blur-sm flex items-center justify-center p-3 sm:p-6"
       role="dialog"
       aria-modal="true"
       aria-label="Create Story"
@@ -295,7 +295,7 @@ export default function CreateStory({
         {/* HEADER */}
         <header className="h-16 shrink-0 px-4 sm:px-6 border-b border-ig-border flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#feda75] via-[#ee2a7b] to-[#6228d7] flex items-center justify-center">
+            <div className="w-9 h-9 rounded-xl bg-linear-to-br from-[#feda75] via-[#ee2a7b] to-[#6228d7] flex items-center justify-center">
               <Sparkles
                 size={18}
                 className="text-white"
@@ -328,7 +328,7 @@ export default function CreateStory({
           {/* PREVIEW */}
           <section className="flex-1 min-h-0 bg-black/5 dark:bg-black/20 p-4 sm:p-6 flex items-center justify-center">
             {activeMedia ? (
-              <div className="relative h-full max-h-[620px] aspect-[9/16] rounded-2xl overflow-hidden bg-black shadow-2xl">
+              <div className="relative h-full max-h-155 aspect-9/16 rounded-2xl overflow-hidden bg-black shadow-2xl">
                 {activeMedia.type ===
                 "image" ? (
                   <img
@@ -414,9 +414,9 @@ export default function CreateStory({
                 onClick={() =>
                   inputRef.current?.click()
                 }
-                className="h-full max-h-[620px] aspect-[9/16] w-full max-w-[350px] rounded-2xl border-2 border-dashed border-ig-border bg-ig-surface hover:bg-ig-hover transition-all flex flex-col items-center justify-center text-center p-8"
+                className="h-full max-h-155 aspect-9/16 w-full max-w-87.5 rounded-2xl border-2 border-dashed border-ig-border bg-ig-surface hover:bg-ig-hover transition-all flex flex-col items-center justify-center text-center p-8"
               >
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-[#feda75] via-[#ee2a7b] to-[#6228d7] flex items-center justify-center mb-5 shadow-lg">
+                <div className="w-16 h-16 rounded-full bg-linear-to-br from-[#feda75] via-[#ee2a7b] to-[#6228d7] flex items-center justify-center mb-5 shadow-lg">
                   <Upload
                     size={28}
                     className="text-white"
@@ -427,7 +427,7 @@ export default function CreateStory({
                   Add photos or videos
                 </h3>
 
-                <p className="text-sm text-ig-muted mt-2 max-w-[230px]">
+                <p className="text-sm text-ig-muted mt-2 max-w-57.5">
                   Choose up to 10 photos or videos to create your story.
                 </p>
 
@@ -439,7 +439,7 @@ export default function CreateStory({
           </section>
 
           {/* SETTINGS */}
-          <aside className="w-full lg:w-[380px] xl:w-[410px] shrink-0 border-t lg:border-t-0 lg:border-l border-ig-border overflow-y-auto">
+          <aside className="w-full lg:w-95 xl:w-102.5 shrink-0 border-t lg:border-t-0 lg:border-l border-ig-border overflow-y-auto">
             <div className="p-5 sm:p-6 space-y-6">
               {/* MEDIA UPLOAD */}
               <div>
@@ -481,7 +481,7 @@ export default function CreateStory({
                               index
                             )
                           }
-                          className={`relative aspect-[9/14] rounded-lg overflow-hidden bg-black border-2 transition-all ${
+                          className={`relative aspect-9/14 rounded-lg overflow-hidden bg-black border-2 transition-all ${
                             activeIndex ===
                             index
                               ? "border-[#0095f6] ring-2 ring-[#0095f6]/20"
