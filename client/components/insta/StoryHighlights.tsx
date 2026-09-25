@@ -1,28 +1,21 @@
 "use client";
 
 import {
-  Plus,
-  Trash2,
-  X,
-  Check,
-  Play,
-  Eye,
-  RefreshCw,
-} from "lucide-react";
-
-import {
   useCallback,
   useEffect,
   useState,
 } from "react";
-
+import {
+  Check,
+  Eye,
+  Plus,
+  RefreshCw,
+  Trash2,
+  X,
+} from "lucide-react";
 import axiosInstance from "@/lib/axios";
 import { useI18n } from "@/lib/i18n";
 import HighlightViewer from "./HighlightViewer";
-
-/* =========================================================
-   TYPES
-========================================================= */
 
 interface StoryMedia {
   _id?: string;
@@ -35,14 +28,7 @@ interface ArchivedStory {
   media: StoryMedia[];
   createdAt: string;
   expiresAt: string;
-  status?:
-    | "active"
-    | "archived"
-    | "deleted";
-
-  /*
-   * Story analytics counters.
-   */
+  status?: "active" | "archived" | "deleted";
   viewsCount?: number;
   uniqueViewersCount?: number;
 }
@@ -52,1264 +38,486 @@ interface Highlight {
   title: string;
   coverUrl?: string;
   stories: ArchivedStory[];
-
-  /*
-   * Highlight analytics.
-   */
   totalViews?: number;
   uniqueViewers?: number;
 }
 
-interface HighlightAnalytics {
-  highlightId: string;
-  title: string;
-  totalViews: number;
-  uniqueViewers: number;
-
-  stories: Array<{
-    storyId: string;
-    views: number;
-  }>;
-}
-
-/* =========================================================
-   FORMAT NUMBER
-========================================================= */
-
-const formatCount = (
-  value: number
-) =>
-  new Intl.NumberFormat(
-    "en-US",
-    {
-      notation: "compact",
-      maximumFractionDigits: 1,
-    }
-  ).format(
-    Math.max(
-      0,
-      Number(value) || 0
-    )
-  );
-
-/* =========================================================
-   NORMALIZE API RESPONSE
-========================================================= */
-
-const getResponseArray = <T,>(
-  responseData: any,
+const getArray = <T,>(
+  data: any,
   keys: string[]
 ): T[] => {
   for (const key of keys) {
-    if (
-      Array.isArray(
-        responseData?.[key]
-      )
-    ) {
-      return responseData[key];
-    }
+    if (Array.isArray(data?.[key])) return data[key];
   }
-
-  if (Array.isArray(responseData)) {
-    return responseData;
-  }
-
-  return [];
+  return Array.isArray(data) ? data : [];
 };
 
-/* =========================================================
-   COMPONENT
-========================================================= */
+const formatCount = (value: number) =>
+  new Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(Math.max(0, Number(value) || 0));
 
 export default function StoryHighlights() {
   const { t } = useI18n();
-  const [
-    highlights,
-    setHighlights,
-  ] = useState<Highlight[]>([]);
 
-  const [
-    archivedStories,
-    setArchivedStories,
-  ] = useState<ArchivedStory[]>([]);
+  const [highlights, setHighlights] =
+    useState<Highlight[]>([]);
+  const [archivedStories, setArchivedStories] =
+    useState<ArchivedStory[]>([]);
+  const [selectedStories, setSelectedStories] =
+    useState<string[]>([]);
+  const [title, setTitle] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] =
+    useState<string | null>(null);
+  const [error, setError] = useState("");
+  const [showCreate, setShowCreate] =
+    useState(false);
+  const [viewing, setViewing] =
+    useState<Highlight | null>(null);
 
-  const [
-    selectedStories,
-    setSelectedStories,
-  ] = useState<string[]>([]);
+  const loadData = useCallback(async () => {
+    try {
+      setLoading(true);
+      setError("");
 
-  const [
-    title,
-    setTitle,
-  ] = useState("");
+      const [
+        highlightsResponse,
+        storiesResponse,
+      ] = await Promise.all([
+        axiosInstance.get(
+          "/api/story-highlights"
+        ),
+        axiosInstance.get(
+          "/api/stories/archive"
+        ),
+      ]);
 
-  const [
-    loading,
-    setLoading,
-  ] = useState(true);
+      const loadedHighlights =
+        getArray<Highlight>(
+          highlightsResponse.data,
+          ["highlights", "data"]
+        );
 
-  const [
-    creating,
-    setCreating,
-  ] = useState(false);
-
-  const [
-    deleting,
-    setDeleting,
-  ] = useState<string | null>(
-    null
-  );
-
-  const [
-    error,
-    setError,
-  ] = useState("");
-
-  const [
-    viewingHighlight,
-    setViewingHighlight,
-  ] = useState<Highlight | null>(
-    null
-  );
-
-  /* =======================================================
-     AUTHENTICATION HEADER
-
-     The server's protect middleware requires:
-
-       Authorization: Bearer <token>
-
-     The login store saves it as:
-
-       accessToken
-  ======================================================= */
-
-  const getAuthHeaders = useCallback(() => {
-    if (
-      typeof window ===
-      "undefined"
-    ) {
-      return {};
-    }
-
-    const token =
-      localStorage.getItem(
-        "accessToken"
+      const stories = getArray<ArchivedStory>(
+        storiesResponse.data,
+        ["stories", "data"]
+      ).filter(
+        (story) => story.status !== "deleted"
       );
 
-    if (!token) {
-      return {};
-    }
+      const withAnalytics =
+        await Promise.all(
+          loadedHighlights.map(
+            async (highlight) => {
+              try {
+                const response =
+                  await axiosInstance.get(
+                    `/api/story-highlights/${highlight._id}/analytics`
+                  );
+                const analytics =
+                  response.data?.analytics;
 
-    return {
-      Authorization:
-        `Bearer ${token}`,
-    };
-  }, []);
-
-  /* =======================================================
-     LOAD HIGHLIGHT ANALYTICS
-  ======================================================= */
-
-  const loadHighlightAnalytics =
-    useCallback(
-      async (
-        highlight: Highlight
-      ): Promise<Highlight> => {
-        try {
-          const response =
-            await axiosInstance.get(
-              `/api/story-highlights/${highlight._id}/analytics`,
-              {
-                headers:
-                  getAuthHeaders(),
+                return {
+                  ...highlight,
+                  totalViews:
+                    Number(
+                      analytics?.totalViews || 0
+                    ),
+                  uniqueViewers:
+                    Number(
+                      analytics?.uniqueViewers || 0
+                    ),
+                };
+              } catch {
+                return highlight;
               }
-            );
+            }
+          )
+        );
 
-          const analytics:
-            HighlightAnalytics | undefined =
-            response.data
-              ?.analytics;
-
-          if (!analytics) {
-            return {
-              ...highlight,
-              totalViews: 0,
-              uniqueViewers: 0,
-            };
-          }
-
-          return {
-            ...highlight,
-
-            totalViews:
-              Number(
-                analytics.totalViews
-              ) || 0,
-
-            uniqueViewers:
-              Number(
-                analytics.uniqueViewers
-              ) || 0,
-          };
-        } catch (analyticsError: any) {
-          console.error(
-            `Failed to load analytics for highlight ${highlight._id}:`,
-            analyticsError
-          );
-
-          /*
-           * If the analytics endpoint is unavailable,
-           * fall back to Story-level counters.
-           */
-          const totalViews = (
-            highlight.stories ||
-            []
-          ).reduce(
-            (
-              sum,
-              story
-            ) =>
-              sum +
-              Number(
-                story.viewsCount ||
-                  0
-              ),
-            0
-          );
-
-          /*
-           * This fallback may count the same viewer more
-           * than once across Stories. The backend analytics
-           * endpoint is preferred because it calculates
-           * Highlight-level unique viewers correctly.
-           */
-          const uniqueViewers = (
-            highlight.stories ||
-            []
-          ).reduce(
-            (
-              sum,
-              story
-            ) =>
-              sum +
-              Number(
-                story.uniqueViewersCount ||
-                  0
-              ),
-            0
-          );
-
-          return {
-            ...highlight,
-            totalViews,
-            uniqueViewers,
-          };
-        }
-      },
-      [getAuthHeaders]
-    );
-
-  /* =======================================================
-     LOAD DATA
-  ======================================================= */
-
-  const loadData =
-    useCallback(
-      async () => {
-        try {
-          setLoading(true);
-          setError("");
-
-          /*
-           * localStorage is available only in browser.
-           */
-          if (
-            typeof window ===
-            "undefined"
-          ) {
-            return;
-          }
-
-          /*
-           * Check authentication before making
-           * protected API requests.
-           */
-          const token =
-            localStorage.getItem(
-              "accessToken"
-            );
-
-          if (!token) {
-            setError(
-              t("loginAgain")
-            );
-
-            return;
-          }
-
-          /*
-           * Explicitly send the Bearer token.
-           *
-           * axios.js already does this automatically,
-           * but sending it here as well makes this component
-           * safe even if the interceptor is changed later.
-           */
-          const config = {
-            headers:
-              getAuthHeaders(),
-          };
-
-          /*
-           * Load both:
-           *
-           * 1. Existing Highlights
-           * 2. Archived Stories available for Highlights
-           */
-          const [
-            highlightsResponse,
-            storiesResponse,
-          ] = await Promise.all([
-            axiosInstance.get(
-              "/api/story-highlights",
-              config
-            ),
-
-            axiosInstance.get(
-              "/api/stories/archive",
-              config
-            ),
-          ]);
-
-          /*
-           * -------------------------------------------------
-           * HIGHLIGHTS
-           * -------------------------------------------------
-           */
-
-          const loadedHighlights =
-            getResponseArray<Highlight>(
-              highlightsResponse.data,
-              [
-                "highlights",
-                "data",
-              ]
-            );
-
-          /*
-           * -------------------------------------------------
-           * ARCHIVED STORIES
-           * -------------------------------------------------
-           */
-
-          const loadedStories =
-            getResponseArray<ArchivedStory>(
-              storiesResponse.data,
-              [
-                "stories",
-                "data",
-              ]
-            );
-
-          const stories =
-            loadedStories.filter(
-              (
-                story
-              ) =>
-                story.status !==
-                "deleted"
-            );
-
-          /*
-           * -------------------------------------------------
-           * HIGHLIGHT ANALYTICS
-           * -------------------------------------------------
-           *
-           * Load analytics for each Highlight.
-           *
-           * This provides:
-           *
-           * totalViews
-           * uniqueViewers
-           * per-story view counts
-           *
-           * from the backend.
-           */
-
-          const highlightsWithAnalytics =
-            await Promise.all(
-              loadedHighlights.map(
-                (
-                  highlight
-                ) =>
-                  loadHighlightAnalytics(
-                    highlight
-                  )
-              )
-            );
-
-          setHighlights(
-            highlightsWithAnalytics
-          );
-
-          setArchivedStories(
-            stories
-          );
-        } catch (
-          err: any
-        ) {
-          console.error(
-            "Story highlights loading error:",
-            err
-          );
-
-          /*
-           * 401 = authentication problem.
-           */
-          if (
-            err?.response
-              ?.status === 401
-          ) {
-            setError(
-              t("loginExpired")
-            );
-
-            return;
-          }
-
-          /*
-           * Other server errors.
-           */
-          setError(
-            err?.response
-              ?.data
-              ?.message ||
-              t("unableLoadHighlights")
-          );
-        } finally {
-          setLoading(false);
-        }
-      },
-      [
-        getAuthHeaders,
-        loadHighlightAnalytics,
-      ]
-    );
-
-  /* =======================================================
-     INITIAL LOAD
-  ======================================================= */
+      setHighlights(withAnalytics);
+      setArchivedStories(stories);
+    } catch (requestError: any) {
+      console.error(
+        "Story highlights loading error:",
+        requestError
+      );
+      setError(
+        requestError?.response?.data?.message ||
+          t("unableLoadHighlights")
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [t]);
 
   useEffect(() => {
     loadData();
   }, [loadData]);
 
-  /* =======================================================
-     SELECT / UNSELECT STORY
-  ======================================================= */
-
-  const toggleStory = (
-    storyId: string
-  ) => {
-    setSelectedStories(
-      (previous) =>
-        previous.includes(
-          storyId
-        )
-          ? previous.filter(
-              (id) =>
-                id !== storyId
-            )
-          : [
-              ...previous,
-              storyId,
-            ]
+  const toggleStory = (id: string) => {
+    setSelectedStories((previous) =>
+      previous.includes(id)
+        ? previous.filter(
+            (storyId) => storyId !== id
+          )
+        : [...previous, id]
     );
   };
 
-  /* =======================================================
-     CREATE HIGHLIGHT
-  ======================================================= */
+  const createHighlight = async () => {
+    if (!title.trim()) {
+      setError(t("enterHighlightName"));
+      return;
+    }
 
-  const handleCreateHighlight =
-    async () => {
+    if (!selectedStories.length) {
+      setError(t("selectAtLeastOneStory"));
+      return;
+    }
+
+    try {
+      setSaving(true);
       setError("");
 
-      if (
-        !title.trim()
-      ) {
-        setError(
-          t("enterHighlightName")
-        );
-
-        return;
-      }
-
-      if (
-        selectedStories.length ===
-        0
-      ) {
-        setError(
-          t("selectAtLeastOneStory")
-        );
-
-        return;
-      }
-
-      try {
-        setCreating(true);
-
-        await axiosInstance.post(
-          "/api/story-highlights",
-          {
-            title:
-              title.trim(),
-
-            storyIds:
-              selectedStories,
-          },
-          {
-            headers:
-              getAuthHeaders(),
-          }
-        );
-
-        /*
-         * Reset form.
-         */
-        setTitle("");
-        setSelectedStories([]);
-
-        /*
-         * Reload Highlights and analytics.
-         */
-        await loadData();
-      } catch (
-        err: any
-      ) {
-        console.error(
-          "Create highlight error:",
-          err
-        );
-
-        if (
-          err?.response
-            ?.status === 401
-        ) {
-          setError(
-            t("loginExpired")
-          );
-
-          return;
+      await axiosInstance.post(
+        "/api/story-highlights",
+        {
+          title: title.trim(),
+          storyIds: selectedStories,
         }
+      );
 
-        setError(
-          err?.response
-            ?.data
-            ?.message ||
-            t("unableCreateHighlight")
-        );
-      } finally {
-        setCreating(false);
-      }
-    };
+      setTitle("");
+      setSelectedStories([]);
+      setShowCreate(false);
+      await loadData();
+    } catch (requestError: any) {
+      setError(
+        requestError?.response?.data?.message ||
+          t("unableCreateHighlight")
+      );
+    } finally {
+      setSaving(false);
+    }
+  };
 
-  /* =======================================================
-     DELETE HIGHLIGHT
-  ======================================================= */
+  const deleteHighlight = async (
+    highlightId: string
+  ) => {
+    if (
+      !window.confirm(
+        "Delete this highlight?"
+      )
+    ) {
+      return;
+    }
 
-  const handleDeleteHighlight =
-    async (
-      highlightId: string
-    ) => {
-      if (
-        !window.confirm(
-          `${t("deletingHighlight")} ${t("storyDeleteAnalytics")}`
+    try {
+      setDeleting(highlightId);
+
+      await axiosInstance.delete(
+        `/api/story-highlights/${highlightId}`
+      );
+
+      setHighlights((previous) =>
+        previous.filter(
+          (highlight) =>
+            highlight._id !== highlightId
         )
-      ) {
-        return;
-      }
-
-      try {
-        setDeleting(
-          highlightId
-        );
-
-        await axiosInstance.delete(
-          `/api/story-highlights/${highlightId}`,
-          {
-            headers:
-              getAuthHeaders(),
-          }
-        );
-
-        /*
-         * Remove immediately from UI.
-         */
-        setHighlights(
-          (previous) =>
-            previous.filter(
-              (
-                highlight
-              ) =>
-                highlight._id !==
-                highlightId
-            )
-        );
-
-        /*
-         * If the deleted Highlight is open,
-         * close the viewer.
-         */
-        setViewingHighlight(
-          (current) =>
-            current?._id ===
-            highlightId
-              ? null
-              : current
-        );
-      } catch (
-        err: any
-      ) {
-        console.error(
-          "Delete highlight error:",
-          err
-        );
-
-        if (
-          err?.response
-            ?.status === 401
-        ) {
-          setError(
-            t("loginExpired")
-          );
-
-          return;
-        }
-
-        setError(
-          err?.response
-            ?.data
-            ?.message ||
-            t("unableDeleteHighlight")
-        );
-      } finally {
-        setDeleting(null);
-      }
-    };
-
-  /* =======================================================
-     LOADING
-  ======================================================= */
+      );
+    } catch (requestError: any) {
+      setError(
+        requestError?.response?.data?.message ||
+          t("unableDeleteHighlight")
+      );
+    } finally {
+      setDeleting(null);
+    }
+  };
 
   if (loading) {
     return (
-      <section className="w-full py-5">
-
-        <div className="flex items-center justify-between mb-4">
-
-          <div>
-            <h2 className="text-lg font-semibold text-ig-text">
-              Story Highlights
-            </h2>
-
-            <p className="text-xs text-ig-muted mt-1">
-              Keep your favorite Stories on your profile.
-            </p>
-          </div>
-
-        </div>
-
-        <div className="flex items-center gap-2 text-sm text-ig-muted">
+      <section className="w-full py-3">
+        <div className="flex justify-center py-4 text-ig-muted">
           <RefreshCw
-            size={15}
+            size={18}
             className="animate-spin"
           />
-
-          Loading highlights...
         </div>
-
       </section>
     );
   }
 
-  /* =======================================================
-     MAIN UI
-  ======================================================= */
-
   return (
-    <section className="w-full py-5">
-
-      {/* ===================================================
-          HEADER
-      =================================================== */}
-
-      <div className="flex items-center justify-between mb-4">
-
-        <div>
-
-          <h2 className="text-lg font-semibold text-ig-text">
-            Story Highlights
-          </h2>
-
-          <p className="text-xs text-ig-muted mt-1">
-            Keep your favorite Stories on your profile.
-          </p>
-
-        </div>
-
-      </div>
-
-      {/* ===================================================
-          ERROR
-      =================================================== */}
-
+    <section className="w-full">
       {error && (
-        <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-3">
-
-          <p className="flex-1 text-sm text-red-500">
-            {error}
-          </p>
-
+        <div className="mb-4 rounded-xl border border-red-500/20 bg-red-500/10 px-3 py-2 text-xs text-red-500">
+          {error}
           <button
             type="button"
-            onClick={() =>
-              setError("")
-            }
-            className="text-red-500"
-            aria-label="Close error"
+            onClick={() => setError("")}
+            className="ml-2"
           >
-            <X size={16} />
+            <X size={13} />
           </button>
-
         </div>
       )}
 
-      {/* ===================================================
-          HIGHLIGHTS
-      =================================================== */}
+      {/* Instagram-style highlight circles */}
+      <div className="flex items-start gap-5 sm:gap-7 overflow-x-auto px-1 pb-2 scrollbar-hide">
+        <button
+          type="button"
+          onClick={() => setShowCreate(true)}
+          className="w-18 shrink-0 flex flex-col items-center gap-2 group"
+          aria-label="Create new highlight"
+        >
+          <span className="w-18 h-18 rounded-full border-2 border-ig-border bg-ig-surface flex items-center justify-center group-hover:bg-ig-hover transition-colors">
+            <Plus
+              size={28}
+              strokeWidth={1.5}
+              className="text-ig-text"
+            />
+          </span>
+          <span className="max-w-18 truncate text-xs text-ig-text">
+            New
+          </span>
+        </button>
 
-      {highlights.length >
-      0 ? (
-        <div className="flex gap-6 overflow-x-auto pb-5 scrollbar-hide">
+        {highlights.map((highlight) => {
+          const firstStory =
+            highlight.stories?.[0];
+          const cover =
+            highlight.coverUrl ||
+            firstStory?.media?.[0]?.url;
 
-          {highlights.map(
-            (
-              highlight
-            ) => {
+          return (
+            <div
+              key={highlight._id}
+              className="relative w-18 shrink-0 flex flex-col items-center gap-2 group"
+            >
+              <button
+                type="button"
+                onClick={() => setViewing(highlight)}
+                className="w-18 h-18 rounded-full p-0.75 bg-linear-to-tr from-[#feda75] via-[#ee2a7b] to-[#6228d7] shadow-sm"
+                aria-label={`Open ${highlight.title} highlight`}
+              >
+                <span className="block w-full h-full overflow-hidden rounded-full border-2 border-ig-surface bg-ig-hover">
+                  {cover ? (
+                    firstStory?.media?.[0]
+                      ?.type === "video" ? (
+                      <video
+                        src={cover}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <img
+                        src={cover}
+                        alt={highlight.title}
+                        className="h-full w-full object-cover"
+                      />
+                    )
+                  ) : (
+                    <span className="flex h-full w-full items-center justify-center text-xs text-ig-muted">
+                      {highlight.title.slice(
+                        0,
+                        1
+                      )}
+                    </span>
+                  )}
+                </span>
+              </button>
 
-              const firstStory =
-                highlight.stories?.[0];
+              <span className="max-w-18 truncate text-xs text-ig-text">
+                {highlight.title}
+              </span>
 
-              const firstMedia =
-                firstStory?.media?.[0];
-
-              const cover =
-                highlight.coverUrl ||
-                firstMedia?.url;
-
-              const totalViews =
-                Number(
-                  highlight.totalViews ||
-                    0
-                );
-
-              const uniqueViewers =
-                Number(
-                  highlight.uniqueViewers ||
-                    0
-                );
-
-              return (
-                <div
-                  key={
+              <button
+                type="button"
+                onClick={() =>
+                  deleteHighlight(
                     highlight._id
-                  }
-                  className="relative shrink-0 w-24 flex flex-col items-center group"
-                >
+                  )
+                }
+                disabled={
+                  deleting === highlight._id
+                }
+                className="absolute right-0 top-0 hidden h-5 w-5 items-center justify-center rounded-full bg-black text-white group-hover:flex"
+                aria-label="Delete highlight"
+              >
+                {deleting ===
+                highlight._id ? (
+                  <RefreshCw
+                    size={10}
+                    className="animate-spin"
+                  />
+                ) : (
+                  <Trash2 size={10} />
+                )}
+              </button>
+            </div>
+          );
+        })}
+      </div>
 
-                  {/* ========================================
-                      HIGHLIGHT CIRCLE
-                  ======================================== */}
+      {/* Create highlight dialog */}
+      {showCreate && (
+        <div className="fixed inset-0 z-150 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="w-full max-w-xl max-h-[85vh] overflow-y-auto rounded-2xl border border-ig-border bg-white dark:bg-[#121212] shadow-2xl">
+            <div className="flex items-center justify-between border-b border-ig-border px-5 py-4">
+              <div>
+                <h3 className="text-base font-semibold text-ig-text">
+                  Create New Highlight
+                </h3>
+                <p className="mt-1 text-xs text-ig-muted">
+                  Choose archived stories to keep on your profile.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() =>
+                  setShowCreate(false)
+                }
+                className="rounded-full p-2 hover:bg-ig-hover"
+              >
+                <X size={19} />
+              </button>
+            </div>
 
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setViewingHighlight(
-                        highlight
-                      )
-                    }
-                    className="w-18 h-18 rounded-full p-0.75 bg-linear-to-tr from-[#f9ce34] via-[#ee2a7b] to-[#6228d7]"
-                    aria-label={`Open ${highlight.title} highlight with ${formatCount(
-                      totalViews
-                    )} views`}
-                  >
+            <div className="p-5">
+              <input
+                type="text"
+                value={title}
+                onChange={(event) =>
+                  setTitle(event.target.value)
+                }
+                maxLength={50}
+                placeholder={t("highlightName")}
+                className="mb-4 w-full rounded-xl border border-ig-border bg-ig-bg px-4 py-3 text-sm text-ig-text outline-none focus:border-ig-blue"
+              />
 
-                    <div className="w-full h-full rounded-full border-2 border-ig-surface overflow-hidden bg-ig-hover">
+              {archivedStories.length ? (
+                <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                  {archivedStories.map(
+                    (story) => {
+                      const media =
+                        story.media?.[0];
+                      const selected =
+                        selectedStories.includes(
+                          story._id
+                        );
 
-                      {cover ? (
-
-                        firstMedia?.type ===
-                        "video" ? (
-
-                          <div className="relative w-full h-full">
-
+                      return (
+                        <button
+                          key={story._id}
+                          type="button"
+                          onClick={() =>
+                            toggleStory(
+                              story._id
+                            )
+                          }
+                          className={`relative aspect-9/14 overflow-hidden rounded-lg border-2 ${
+                            selected
+                              ? "border-[#0095f6]"
+                              : "border-transparent"
+                          }`}
+                        >
+                          {media?.type ===
+                          "video" ? (
                             <video
-                              src={
-                                cover
-                              }
+                              src={media.url}
                               muted
                               playsInline
                               preload="metadata"
-                              className="w-full h-full object-cover"
+                              className="h-full w-full object-cover"
                             />
-
-                            <div className="absolute inset-0 flex items-center justify-center">
-
-                              <Play
-                                size={
-                                  18
-                                }
-                                className="text-white"
-                                fill="white"
-                              />
-
-                            </div>
-
-                          </div>
-
-                        ) : (
-
-                          <img
-                            src={
-                              cover
-                            }
-                            alt={
-                              highlight.title
-                            }
-                            className="w-full h-full object-cover"
-                          />
-
-                        )
-
-                      ) : (
-
-                        <div className="w-full h-full flex items-center justify-center">
-
-                          <span className="text-xl text-ig-muted">
-                            +
-                          </span>
-
-                        </div>
-
-                      )}
-
-                    </div>
-
-                  </button>
-
-                  {/* ========================================
-                      TITLE
-                  ======================================== */}
-
-                  <span className="mt-2 text-xs text-ig-text truncate max-w-24 text-center">
-                    {
-                      highlight.title
-                    }
-                  </span>
-
-                  {/* ========================================
-                      TOTAL VIEWS
-                  ======================================== */}
-
-                  <div className="mt-1 flex items-center justify-center gap-1 text-[11px] text-ig-muted">
-
-                    <Eye
-                      size={
-                        11
-                      }
-                    />
-
-                    <span>
-                      {formatCount(
-                        totalViews
-                      )}
-                    </span>
-
-                    <span>
-                      views
-                    </span>
-
-                  </div>
-
-                  {/* ========================================
-                      UNIQUE VIEWERS
-                  ======================================== */}
-
-                  <div className="text-[10px] text-ig-muted mt-0.5 text-center">
-                    {formatCount(
-                      uniqueViewers
-                    )}{" "}
-                    unique viewers
-                  </div>
-
-                  {/* ========================================
-                      DELETE
-                  ======================================== */}
-
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleDeleteHighlight(
-                        highlight._id
-                      )
-                    }
-                    disabled={
-                      deleting ===
-                      highlight._id
-                    }
-                    className="absolute -top-1 -right-1 w-6 h-6 rounded-full bg-black text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity disabled:opacity-50"
-                    aria-label="Delete highlight"
-                  >
-
-                    {deleting ===
-                    highlight._id ? (
-
-                      <RefreshCw
-                        size={
-                          11
-                        }
-                        className="animate-spin"
-                      />
-
-                    ) : (
-
-                      <Trash2
-                        size={
-                          12
-                        }
-                      />
-
-                    )}
-
-                  </button>
-
-                </div>
-              );
-            }
-          )}
-
-        </div>
-      ) : (
-
-        /* =================================================
-           NO HIGHLIGHTS
-        ================================================= */
-
-        <div className="border border-dashed border-ig-border rounded-xl p-6 text-center mb-5">
-
-          <div className="w-12 h-12 mx-auto rounded-full border border-ig-border flex items-center justify-center">
-
-            <Plus
-              size={
-                22
-              }
-              className="text-ig-muted"
-            />
-
-          </div>
-
-          <p className="text-sm font-semibold text-ig-text mt-3">
-            No story highlights yet
-          </p>
-
-          <p className="text-xs text-ig-muted mt-1">
-            Add your expired Stories to keep them on your profile.
-          </p>
-
-        </div>
-
-      )}
-
-      {/* ===================================================
-          CREATE HIGHLIGHT
-      =================================================== */}
-
-      <div className="border border-ig-border rounded-xl p-5">
-
-        <h3 className="text-sm font-semibold text-ig-text mb-3">
-          Create New Highlight
-        </h3>
-
-        {/* =================================================
-            TITLE
-        ================================================= */}
-
-        <input
-          type="text"
-          value={
-            title
-          }
-          onChange={(
-            event
-          ) =>
-            setTitle(
-              event.target
-                .value
-            )
-          }
-          placeholder={t("highlightName")}
-          maxLength={
-            50
-          }
-          className="w-full px-3 py-2.5 mb-4 rounded-lg border border-ig-border bg-ig-surface text-ig-text text-sm outline-none focus:border-ig-blue"
-        />
-
-        {/* =================================================
-            ARCHIVED STORIES
-        ================================================= */}
-
-        {archivedStories.length >
-        0 ? (
-
-          <>
-
-            <p className="text-sm text-ig-muted mb-3">
-              Select archived Stories:
-            </p>
-
-            <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-6 lg:grid-cols-8 gap-2">
-
-              {archivedStories.map(
-                (
-                  story
-                ) => {
-
-                  const media =
-                    story.media?.[0];
-
-                  const isSelected =
-                    selectedStories.includes(
-                      story._id
-                    );
-
-                  return (
-                    <button
-                      key={
-                        story._id
-                      }
-                      type="button"
-                      onClick={() =>
-                        toggleStory(
-                          story._id
-                        )
-                      }
-                      className={`relative aspect-square overflow-hidden rounded-lg border-2 transition ${
-                        isSelected
-                          ? "border-[#0095f6]"
-                          : "border-transparent"
-                      }`}
-                    >
-
-                      {/* =================================
-                          MEDIA
-                      ================================= */}
-
-                      {media?.type ===
-                      "video" ? (
-
-                        <video
-                          src={
-                            media.url
-                          }
-                          muted
-                          playsInline
-                          preload="metadata"
-                          className="w-full h-full object-cover"
-                        />
-
-                      ) : (
-
-                        <img
-                          src={
-                            media?.url
-                          }
-                          alt="Archived story"
-                          className="w-full h-full object-cover"
-                        />
-
-                      )}
-
-                      {/* =================================
-                          SELECTED
-                      ================================= */}
-
-                      {isSelected && (
-                        <div className="absolute inset-0 bg-black/35 flex items-center justify-center">
-
-                          <div className="w-7 h-7 rounded-full bg-[#0095f6] flex items-center justify-center">
-
-                            <Check
-                              size={
-                                16
-                              }
-                              className="text-white"
+                          ) : (
+                            <img
+                              src={media?.url}
+                              alt=""
+                              className="h-full w-full object-cover"
                             />
+                          )}
 
-                          </div>
+                          {selected && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/35">
+                              <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#0095f6]">
+                                <Check
+                                  size={15}
+                                  className="text-white"
+                                />
+                              </span>
+                            </span>
+                          )}
 
-                        </div>
-                      )}
-
-                      {/* =================================
-                          STORY VIEW COUNT
-                      ================================= */}
-
-                      <div className="absolute bottom-1 left-1 right-1 rounded bg-black/60 px-1 py-0.5 text-white text-[9px] flex items-center justify-center gap-1">
-
-                        <Eye
-                          size={
-                            9
-                          }
-                        />
-
-                        <span>
-                          {formatCount(
-                            Number(
+                          <span className="absolute bottom-1 left-1 right-1 flex items-center justify-center gap-1 rounded bg-black/60 px-1 py-1 text-[9px] text-white">
+                            <Eye size={9} />
+                            {formatCount(
                               story.viewsCount ||
                                 0
-                            )
-                          )}
-                        </span>
-
-                      </div>
-
-                    </button>
-                  );
-                }
+                            )}
+                          </span>
+                        </button>
+                      );
+                    }
+                  )}
+                </div>
+              ) : (
+                <div className="rounded-xl border border-dashed border-ig-border p-8 text-center">
+                  <p className="text-sm text-ig-text">
+                    No archived Stories available.
+                  </p>
+                  <p className="mt-1 text-xs text-ig-muted">
+                    Stories will appear here after they expire.
+                  </p>
+                </div>
               )}
-
             </div>
 
-            {/* =============================================
-                SELECTED COUNT
-            ============================================= */}
-
-            <p className="text-xs text-ig-muted mt-3">
-
-              {
-                selectedStories.length
-              }{" "}
-
-              {selectedStories.length ===
-              1
-                ? "story"
-                : "stories"}{" "}
-              selected
-
-            </p>
-
-          </>
-
-        ) : (
-
-          <div className="py-7 text-center border border-dashed border-ig-border rounded-lg">
-
-            <p className="text-sm text-ig-text">
-              No archived Stories available.
-            </p>
-
-            <p className="text-xs text-ig-muted mt-1">
-              Stories will appear here after they expire.
-            </p>
-
-          </div>
-
-        )}
-
-        {/* =================================================
-            CREATE ERROR
-        ================================================= */}
-
-        {error && (
-          <div className="mt-4 p-3 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
-
-            <p className="flex-1 text-sm text-red-500">
-              {error}
-            </p>
-
-            <button
-              type="button"
-              onClick={() =>
-                setError("")
-              }
-              className="text-red-500"
-              aria-label="Close error"
-            >
-              <X
-                size={
-                  16
+            <div className="flex gap-3 border-t border-ig-border p-4">
+              <button
+                type="button"
+                onClick={() => setShowCreate(false)}
+                className="flex-1 rounded-xl border border-ig-border py-2.5 text-sm font-semibold text-ig-text hover:bg-ig-hover"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={createHighlight}
+                disabled={
+                  saving ||
+                  !title.trim() ||
+                  !selectedStories.length
                 }
-              />
-            </button>
-
+                className="flex-1 rounded-xl bg-[#0095f6] py-2.5 text-sm font-semibold text-white disabled:opacity-50"
+              >
+                {saving
+                  ? "Creating..."
+                  : "Create Highlight"}
+              </button>
+            </div>
           </div>
-        )}
-
-        {/* =================================================
-            CREATE BUTTON
-        ================================================= */}
-
-        <button
-          type="button"
-          onClick={
-            handleCreateHighlight
-          }
-          disabled={
-            creating ||
-            selectedStories.length ===
-              0 ||
-            !title.trim()
-          }
-          className="w-full mt-4 py-2.5 rounded-lg bg-[#0095f6] text-white text-sm font-semibold transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-
-          {creating
-            ? "Creating..."
-            : "Create Highlight"}
-
-        </button>
-
-      </div>
-
-      {/* ===================================================
-          HIGHLIGHT VIEWER
-      =================================================== */}
-
-      {viewingHighlight && (
-        <HighlightViewer
-          title={
-            viewingHighlight.title
-          }
-          stories={
-            viewingHighlight.stories
-          }
-          totalViews={
-            viewingHighlight.totalViews ||
-            0
-          }
-          uniqueViewers={
-            viewingHighlight.uniqueViewers ||
-            0
-          }
-          onClose={() =>
-            setViewingHighlight(
-              null
-            )
-          }
-        />
+        </div>
       )}
 
+      {viewing && (
+        <HighlightViewer
+          title={viewing.title}
+          stories={viewing.stories}
+          totalViews={viewing.totalViews || 0}
+          uniqueViewers={
+            viewing.uniqueViewers || 0
+          }
+          onClose={() => setViewing(null)}
+        />
+      )}
     </section>
   );
 }
