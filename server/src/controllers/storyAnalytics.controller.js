@@ -119,6 +119,9 @@ export const recordStoryView = async (req, res) => {
       ? Math.max(0, Math.floor(requestedMediaIndex))
       : 0;
     const completed = req.body?.completed === true;
+    const viewSessionKey = typeof req.body?.viewSessionKey === "string" && req.body.viewSessionKey.trim()
+      ? req.body.viewSessionKey.trim().slice(0, 128)
+      : null;
     const now = new Date();
 
     let view = await StoryView.findOne({
@@ -152,13 +155,18 @@ export const recordStoryView = async (req, res) => {
 
     /* One viewing session is counted when the first media is shown. */
     if (mediaIndex === 0) {
-      await StoryViewEvent.create({
-        story: storyId,
-        viewer: viewerId,
-        mediaIndex,
-        completed: false,
-        viewedAt: now,
-      });
+      try {
+        await StoryViewEvent.create({
+          story: storyId,
+          viewer: viewerId,
+          mediaIndex,
+          completed,
+          viewedAt: now,
+          viewSessionKey,
+        });
+      } catch (error) {
+        if (error?.code !== 11000) throw error;
+      }
     }
 
     if (view) {
