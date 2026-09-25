@@ -1,5 +1,6 @@
 import User from "../models/User.model.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 import { generateAccessToken, generateRefreshToken } from "../utils/generateToken.js";
 import Post from "../models/Post.model.js";
 import Like from "../models/Like.model.js";
@@ -93,7 +94,13 @@ export const register = async (req, res) => {
     const refreshToken = generateRefreshToken(user._id);
     user.refreshToken = refreshToken;
     await user.save();
-    res.status(201).json({ success: true, message: "User Created Successfully", accessToken, user });
+    res.status(201).json({
+      success: true,
+      message: "User Created Successfully",
+      accessToken,
+      refreshToken,
+      user,
+    });
   } catch (error) {
     console.log(error);
     return res.status(500).json({ success: false, message: error.message });
@@ -207,6 +214,7 @@ export const login = async (req, res) => {
       message: "Login successful",
       user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture },
       accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
     });
   } catch (error) {
     console.error("Login error:", error);
@@ -277,6 +285,7 @@ export const verifyLoginOtp = async (req, res) => {
       message: "Login successful",
       user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture },
       accessToken: session.accessToken,
+      refreshToken: session.refreshToken,
     });
   } catch (error) {
     console.error("Login OTP verification error:", error);
@@ -323,6 +332,63 @@ export const resendLoginOtp = async (req, res) => {
   } catch (error) {
     console.error("Login OTP resend error:", error);
     return res.status(500).json({ success: false, message: "Unable to resend verification code right now." });
+  }
+};
+
+
+
+export const refreshSession = async (req, res) => {
+  try {
+    const refreshToken = String(req.body?.refreshToken || "");
+    if (!refreshToken) {
+      return res.status(401).json({ success: false, message: "Refresh token is required." });
+    }
+
+    const decoded = jwt.verify(refreshToken, process.env.JWT_REFRESH_SECRET);
+    const user = await User.findById(decoded.id).select("+refreshToken");
+    if (!user || !user.refreshToken || user.refreshToken !== refreshToken) {
+      return res.status(401).json({ success: false, message: "Invalid refresh token." });
+    }
+
+    const accessToken = generateAccessToken(user._id);
+    const rotatedRefreshToken = generateRefreshToken(user._id);
+    user.refreshToken = rotatedRefreshToken;
+    await user.save();
+
+    return res.status(200).json({
+      success: true,
+      accessToken,
+      refreshToken: rotatedRefreshToken,
+      user: {
+        _id: user._id,
+        username: user.username,
+        fullName: user.fullName,
+        email: user.email,
+        language: user.language,
+        profilePicture: user.profilePicture,
+      },
+    });
+  } catch (error) {
+    return res.status(401).json({ success: false, message: "Invalid or expired refresh token." });
+  }
+};
+
+export const logout = async (req, res) => {
+  try {
+    const refreshToken = String(req.body?.refreshToken || "");
+    if (refreshToken) {
+      const user = await User.findOne({ refreshToken }).select("+refreshToken");
+      if (user) {
+        user.refreshToken = null;
+        await user.save();
+      }
+    } else if (req.user?._id) {
+      await User.findByIdAndUpdate(req.user._id, { $set: { refreshToken: null } });
+    }
+
+    return res.status(200).json({ success: true, message: "Logged out successfully." });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "Unable to complete logout." });
   }
 };
 
