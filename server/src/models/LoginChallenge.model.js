@@ -4,7 +4,7 @@ const loginChallengeSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
     otpHash: { type: String, required: true },
-    expiresAt: { type: Date, required: true, index: true },
+    expiresAt: { type: Date, required: true },
     attempts: { type: Number, default: 0 },
     resendCount: { type: Number, default: 0 },
     lastSentAt: { type: Date, required: true },
