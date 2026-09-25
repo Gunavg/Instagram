@@ -28,7 +28,7 @@ export default function LoginPage() {
   }, [seconds]);
 
   const finishLogin = (data: any) => {
-    login({ user: data.user, token: data.accessToken });
+    login({ user: data.user, token: data.accessToken, refreshToken: data.refreshToken });
     toast.add({ type: "success", title: "Login Successful", description: `Hello ${data.user.username}` });
     router.push("/");
   };
