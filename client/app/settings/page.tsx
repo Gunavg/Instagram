@@ -145,6 +145,7 @@ export default function SettingsPage() {
   const selectedLanguage = LANGUAGES.find((item) => item.code === selected);
   const currentLanguage = LANGUAGES.find((item) => item.code === language);
   const verificationNeedsPhone = selected !== "fr";
+  const hasPhone = Boolean(phone.trim());
 
   return (
     <main className="min-h-screen bg-ig-bg text-ig-text md:pl-18 xl:pl-61">
@@ -221,11 +222,16 @@ export default function SettingsPage() {
                       <button
                         type="button"
                         onClick={requestCode}
-                        disabled={loading}
+                        disabled={loading || (verificationNeedsPhone && !hasPhone)}
                         className="mt-3 rounded-lg bg-ig-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
                       >
                         {loading ? t("sending") : t("sendVerification")}
                       </button>
+                      {verificationNeedsPhone && !hasPhone && (
+                        <p className="mt-2 text-xs text-red-500">
+                          Add and save your mobile number below before requesting SMS verification.
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
