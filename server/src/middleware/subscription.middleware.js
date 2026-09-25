@@ -11,12 +11,35 @@ export const enforcePostLimit = async (req, res, next) => {
     const plan = subscription?.plan || "free";
     const limit = SUBSCRIPTION_PLANS[plan]?.postingLimit ?? 1;
 
+    if (plan !== "free" && subscription?.status !== "active") {
+      return res.status(403).json({
+        success: false,
+        code: "SUBSCRIPTION_NOT_ACTIVE",
+        message: "Your paid subscription is not active. Renew or choose an active plan before posting.",
+        subscription: {
+          plan,
+          status: subscription?.status || "unknown",
+        },
+      });
+    }
+
     if (limit === Infinity) return next();
 
-    const postCount = await Post.countDocuments({
+    const postFilter = {
       user: req.user._id,
       isDeleted: false,
-    });
+    };
+
+    // Paid plans reset their posting allowance at the start of each
+    // billing period. The free plan keeps its one-post lifetime allowance.
+    if (plan !== "free" && subscription?.currentPeriodStart) {
+      postFilter.createdAt = { $gte: subscription.currentPeriodStart };
+      if (subscription.currentPeriodEnd) {
+        postFilter.createdAt.$lt = subscription.currentPeriodEnd;
+      }
+    }
+
+    const postCount = await Post.countDocuments(postFilter);
 
     if (postCount >= limit) {
       return res.status(403).json({
