@@ -14,6 +14,7 @@ import languageRoutes from "./routes/language.routes.js";
 import subscriptionRoutes, { stripeWebhook } from "./routes/subscription.routes.js";
 import adminRoutes from "./routes/admin.routes.js";
 import scheduledPostRoutes from "./routes/scheduledPost.routes.js";
+import reportRoutes from "./routes/report.routes.js";
 
 dotenv.config();
 const app = express();
@@ -23,7 +24,6 @@ app.use(cors({
   credentials: true,
 }));
 
-// Stripe requires the exact raw request body for signature verification.
 app.post("/api/subscription/webhook", express.raw({ type: "application/json" }), stripeWebhook);
 
 app.use(express.json());
@@ -35,6 +35,7 @@ app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/scheduled-posts", scheduledPostRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/reports", reportRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/follow", followRoutes);
 app.use("/api/likes", likesRoutes);
