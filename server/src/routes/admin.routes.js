@@ -1,14 +1,8 @@
 import express from "express";
 import { requireAdmin } from "../middleware/admin.middleware.js";
-import {
-  updateUser, deleteUser, getStories, deleteStory, getSubscriptions, updateSubscription, getScheduledPosts, getAuditLogs,
-  updatePost, deletePost,
-} from "../controllers/admin.controller.js";
-import {
-  dashboard, getUsersAdvanced, getPostsAdvanced,
-  getComments, createAdminComment, updateComment, deleteComment,
-  getReports, updateReport, deleteReport,
-} from "../controllers/adminExtras.controller.js";
+import { updateUser, deleteUser, getStories, deleteStory, getSubscriptions, updateSubscription, getScheduledPosts, getAuditLogs, updatePost, deletePost } from "../controllers/admin.controller.js";
+import { dashboard, getUsersAdvanced, getPostsAdvanced, getComments, createAdminComment, updateComment, deleteComment, getReports, updateReport, deleteReport } from "../controllers/adminExtras.controller.js";
+import { updateStory } from "../controllers/adminStory.controller.js";
 
 const r = express.Router();
 r.use(...requireAdmin);
@@ -20,6 +14,7 @@ r.get("/posts", getPostsAdvanced);
 r.patch("/posts/:id", updatePost);
 r.delete("/posts/:id", deletePost);
 r.get("/stories", getStories);
+r.patch("/stories/:id", updateStory);
 r.delete("/stories/:id", deleteStory);
 r.get("/subscriptions", getSubscriptions);
 r.patch("/subscriptions/:id", updateSubscription);
