@@ -63,3 +63,17 @@ export const sendOtpSms = async ({ to, otp, language }) => {
     throw new Error(`${prefix}: ${message}`);
   }
 };
+
+export const sendScheduledPostPublishedEmail = async ({ to, userName, post }) => {
+  if (!process.env.RESEND_API_KEY || !process.env.OTP_FROM_EMAIL) {
+    console.warn("Scheduled post email skipped: RESEND_API_KEY / OTP_FROM_EMAIL is not configured.");
+    return null;
+  }
+  const response = await axios.post("https://api.resend.com/emails", {
+    from: process.env.OTP_FROM_EMAIL,
+    to: [to],
+    subject: "Your scheduled InstAI post is now live",
+    text: `Hello ${userName},\n\nYour scheduled post has been published successfully.\n\nCaption: ${post.caption || "(No caption)"}\nPublished: ${new Date(post.publishedAt || Date.now()).toLocaleString("en-IN", { timeZone: "Asia/Kolkata" })}\n\nThank you for using InstAI.`
+  }, { headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, "Content-Type":"application/json" } });
+  return response.data;
+};
