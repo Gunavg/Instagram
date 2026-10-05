@@ -6,6 +6,7 @@ import { startStoryExpirationJob } from "./jobs/storyExpiration.job.js";
 import { startSubscriptionRenewalJob } from "./jobs/subscriptionRenewal.job.js";
 import { startLoginChallengeCleanupJob } from "./jobs/loginChallengeCleanup.job.js";
 import { initSocket } from "./socket.js";
+import { startScheduledPostJob } from "./jobs/scheduledPost.job.js";
 
 const PORT = process.env.PORT || 5000;
 const server = http.createServer(app);
@@ -17,6 +18,7 @@ const startServer = async () => {
     startStoryExpirationJob();
     startSubscriptionRenewalJob();
     startLoginChallengeCleanupJob();
+    startScheduledPostJob();
 
     server.listen(PORT, () => {
       console.log("--------------------------------");
