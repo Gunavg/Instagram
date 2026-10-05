@@ -1,0 +1,5 @@
+import ScheduledPost from "../models/ScheduledPost.model.js";
+import ScheduledPostError from "../models/ScheduledPostError.model.js";
+import {publishScheduledPost} from "../controllers/scheduledPost.controller.js";
+const run=async()=>{const due=await ScheduledPost.find({status:"scheduled",scheduledAt:{$lte:new Date()}}).limit(20);for(const post of due){try{post.attempts+=1;post.lastError="";await post.save();await publishScheduledPost(post);}catch(e){post.lastError=e.message;post.status=post.attempts>=3?"failed":"scheduled";await post.save();await ScheduledPostError.create({post:post._id,user:post.user,attempt:post.attempts,error:e.message,stack:e.stack||""});console.error("Scheduled post publish failed:",e.message);}}};
+export const startScheduledPostJob=()=>{run().catch(e=>console.error("Scheduled post job:",e.message));setInterval(()=>run().catch(e=>console.error("Scheduled post job:",e.message)),60*1000);console.log("🗓️ Scheduled post job started");};
