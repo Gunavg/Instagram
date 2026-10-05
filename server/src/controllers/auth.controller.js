@@ -203,7 +203,7 @@ export const login = async (req, res) => {
         message: "A verification code has been sent to your registered email address.",
         destination: maskLoginEmail(user.email),
         expiresInSeconds: LOGIN_OTP_TTL_MS / 1000,
-        user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture },
+        user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture, role: user.role, status: user.status, isVerified: user.isVerified },
       });
     }
 
@@ -212,7 +212,7 @@ export const login = async (req, res) => {
       success: true,
       requiresOtp: false,
       message: "Login successful",
-      user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture },
+      user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture, role: user.role, status: user.status, isVerified: user.isVerified },
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
     });
@@ -297,7 +297,7 @@ export const verifyLoginOtp = async (req, res) => {
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture },
+      user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture, role: user.role, status: user.status, isVerified: user.isVerified },
       accessToken: session.accessToken,
       refreshToken: session.refreshToken,
     });
@@ -373,14 +373,7 @@ export const refreshSession = async (req, res) => {
       success: true,
       accessToken,
       refreshToken: rotatedRefreshToken,
-      user: {
-        _id: user._id,
-        username: user.username,
-        fullName: user.fullName,
-        email: user.email,
-        language: user.language,
-        profilePicture: user.profilePicture,
-      },
+      user: { _id: user._id, username: user.username, fullName: user.fullName, email: user.email, language: user.language, profilePicture: user.profilePicture, role: user.role, status: user.status, isVerified: user.isVerified },
     });
   } catch (error) {
     return res.status(401).json({ success: false, message: "Invalid or expired refresh token." });
