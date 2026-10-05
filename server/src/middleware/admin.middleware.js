@@ -1,0 +1,4 @@
+import { protect } from "./auth.middleware.js";
+import AdminAuditLog from "../models/AdminAuditLog.model.js";
+export const requireAdmin=[protect,async(req,res,next)=>{if(req.user?.role!=="administrator")return res.status(403).json({success:false,message:"Administrator access required."});next();}];
+export const auditAdminAction=async({req,action,entityType,entityId=null,targetUser=null,metadata={}})=>{try{await AdminAuditLog.create({admin:req.user._id,action,entityType,entityId,targetUser,metadata,ipAddress:req.headers["x-forwarded-for"]?.split(",")[0]?.trim()||req.socket?.remoteAddress||"",userAgent:String(req.headers["user-agent"]||"").slice(0,1000)});}catch(e){console.error("Admin audit log failed:",e.message);}};
