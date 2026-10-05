@@ -12,6 +12,8 @@ import closeFriendRoutes from "./routes/closeFriend.routes.js";
 import storyHighlightRoutes from "./routes/storyHighlight.routes.js";
 import languageRoutes from "./routes/language.routes.js";
 import subscriptionRoutes, { stripeWebhook } from "./routes/subscription.routes.js";
+import adminRoutes from "./routes/admin.routes.js";
+import scheduledPostRoutes from "./routes/scheduledPost.routes.js";
 
 dotenv.config();
 const app = express();
@@ -31,6 +33,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/language", languageRoutes);
 app.use("/api/subscription", subscriptionRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/scheduled-posts", scheduledPostRoutes);
+app.use("/api/admin", adminRoutes);
 app.use("/api/stories", storyRoutes);
 app.use("/api/follow", followRoutes);
 app.use("/api/likes", likesRoutes);
