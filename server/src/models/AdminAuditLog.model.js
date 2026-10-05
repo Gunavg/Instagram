@@ -1,0 +1,3 @@
+import mongoose from "mongoose";
+const schema=new mongoose.Schema({admin:{type:mongoose.Schema.Types.ObjectId,ref:"User",required:true,index:true},action:{type:String,required:true,index:true},entityType:{type:String,required:true,index:true},entityId:{type:mongoose.Schema.Types.ObjectId,default:null,index:true},targetUser:{type:mongoose.Schema.Types.ObjectId,ref:"User",default:null,index:true},metadata:{type:mongoose.Schema.Types.Mixed,default:{}},ipAddress:{type:String,default:""},userAgent:{type:String,default:""}},{timestamps:true});
+schema.index({createdAt:-1}); schema.index({admin:1,createdAt:-1}); export default mongoose.model("AdminAuditLog",schema);
