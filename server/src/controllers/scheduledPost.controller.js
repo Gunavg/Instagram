@@ -11,6 +11,8 @@ export const createScheduledPost=async(req,res)=>{
   const allowance=await getPostAllowance(req.user._id);
   if(!allowance.allowed)return res.status(403).json({success:false,code:"SCHEDULE_QUOTA_REACHED",message:"Your subscription posting quota does not allow another scheduled post.",subscription:{plan:allowance.plan,limit:allowance.limit,used:allowance.used,scheduled:existing}});
   if(!req.body.media?.length)return res.status(400).json({success:false,message:"At least one media item is required."});
+  const subscription=await getPostAllowance(req.user._id);
+  if(subscription.plan!=="free"&&subscription.subscription?.status!=="active")return res.status(403).json({success:false,code:"SUBSCRIPTION_NOT_ACTIVE",message:"Your paid subscription is not active."});
   const post=await ScheduledPost.create({user:req.user._id,media:req.body.media,caption:req.body.caption||"",hashtags:req.body.hashtags||[],taggedUsers:req.body.taggedUsers||[],location:req.body.location||"",visibility:req.body.visibility||"public",scheduledAt:new Date(req.body.scheduledAt),status:"scheduled"});
   res.status(201).json({success:true,message:"Post scheduled successfully.",post});
  }catch(e){res.status(500).json({success:false,message:e.message});}
