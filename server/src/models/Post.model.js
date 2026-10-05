@@ -15,10 +15,7 @@ const mediaSchema = new mongoose.Schema(
 const postSchema = new mongoose.Schema(
   {
     user: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true, index: true },
-    media: {
-      type: [mediaSchema],
-      validate: [(arr) => arr.length > 0, "At least one media is required"],
-    },
+    media: { type: [mediaSchema], validate: [(arr) => arr.length > 0, "At least one media is required"] },
     caption: { type: String, maxlength: 2200, default: "" },
     hashtags: [{ type: String, trim: true, lowercase: true }],
     location: { type: String, default: "", trim: true },
