@@ -1,0 +1,3 @@
+import mongoose from "mongoose";
+const schema=new mongoose.Schema({post:{type:mongoose.Schema.Types.ObjectId,ref:"Post",required:true,index:true},user:{type:mongoose.Schema.Types.ObjectId,ref:"User",required:true,index:true},attempt:{type:Number,required:true},error:{type:String,required:true},stack:{type:String,default:""}},{timestamps:true});
+schema.index({createdAt:-1}); schema.index({post:1,createdAt:-1}); export default mongoose.model("ScheduledPostError",schema);
