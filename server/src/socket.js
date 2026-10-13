@@ -27,7 +27,7 @@ export const initSocket=(server)=>{
    try{const story=await Story.findOne({_id:storyId,user:socket.data.userId,status:{$in:["active","archived"]}}).select("_id").lean();if(story)socket.join("story-analytics:"+storyId);else socket.emit("story-analytics-error",{message:"Only the story owner may subscribe to its analytics."});}catch(e){socket.emit("story-analytics-error",{message:"Unable to subscribe to story analytics."});}
   });
   socket.on("leave-story-analytics",(storyId)=>{if(storyId)socket.leave("story-analytics:"+storyId);});
-  socket.on("join-conversation",(conversationId)=>{if(conversationId)socket.join(conversationId);});
+  socket.on("join-conversation",async(conversationId)=>{try{if(!conversationId)return;const conv=await Conversation.findById(conversationId).select("participants users members").lean();if(!conv)return;const ids=[...(conv.participants||[]),...(conv.users||[]),...(conv.members||[])].map(x=>String(x?._id||x));if(ids.includes(socket.data.userId))socket.join(String(conversationId));}catch(e){console.error("Conversation join failed:",e.message);}});
   socket.on("leave-conversation",(conversationId)=>{if(conversationId)socket.leave(conversationId);});
   socket.on("send-message",async(data)=>{
    try{
