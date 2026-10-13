@@ -3,6 +3,8 @@
 import { currentUser } from "@/lib/mock-data";
 import { ChevronDown, ChevronLeft, ImageIcon, MapPin, X } from "lucide-react";
 import { useRef, useState } from "react";
+import { CalendarClock } from "lucide-react";
+import ScheduledPostCreator from "@/components/insta/ScheduledPostCreator";
 import { uploadImage } from "@/lib/imgbb.service";
 import axiosInstance from "@/lib/axios";
 import { toast } from "../ui/toast";
@@ -44,6 +46,7 @@ const Createpostmodel = ({ onClose }: CreatePostModalProps) => {
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [enhancedCaption, setEnhancedCaption] = useState(false);
+  const [scheduleOpen, setScheduleOpen] = useState(false);
   const handleenhancedcaption = async () => {
     if (!caption.trim()) {
       toast.add({
@@ -350,6 +353,12 @@ const Createpostmodel = ({ onClose }: CreatePostModalProps) => {
                   </div>
                 </div>
 
+                <div className="px-4 py-3">
+                  <button type="button" onClick={() => setScheduleOpen(true)} className="inline-flex items-center gap-2 rounded-lg border border-ig-border px-3 py-2 text-sm font-semibold text-ig-text hover:bg-ig-hover">
+                    <CalendarClock size={16} /> Schedule instead
+                  </button>
+                </div>
+
                 {/* Location */}
                 <div className="flex items-center justify-between px-4 py-3">
                   <input
@@ -460,6 +469,9 @@ const Createpostmodel = ({ onClose }: CreatePostModalProps) => {
           )}
         </div>
       </div>
+      {scheduleOpen && (
+        <ScheduledPostCreator onClose={() => setScheduleOpen(false)} onCreated={() => setScheduleOpen(false)} />
+      )}
     </div>
   );
 };
