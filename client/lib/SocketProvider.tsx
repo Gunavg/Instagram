@@ -2,17 +2,26 @@
 
 import useAuthStore from "@/store/authStore";
 import { useEffect } from "react";
-import { socket } from "./socket";
+import { socket, connectAuthenticatedSocket, disconnectAuthenticatedSocket } from "./socket";
 
-export default function SocketProvider({ children }: any) {
+export default function SocketProvider({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
+  const token = useAuthStore((state) => state.token);
+
   useEffect(() => {
-    if (!user) return;
-    socket.connect();
-    socket.emit("setup", user._id);
+    if (!user || !token) {
+      disconnectAuthenticatedSocket();
+      return;
+    }
+    connectAuthenticatedSocket(token);
+    const handleConnect = () => socket.emit("setup", user._id);
+    socket.on("connect", handleConnect);
+    if (socket.connected) handleConnect();
     return () => {
-      socket.disconnect();
+      socket.off("connect", handleConnect);
+      disconnectAuthenticatedSocket();
     };
-  }, [user]);
+  }, [user?._id, token]);
+
   return <>{children}</>;
 }
