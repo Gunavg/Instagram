@@ -15,9 +15,14 @@ export const connectAuthenticatedSocket = (token?: string) => {
     return;
   }
   if (configuredToken !== token) {
+    const wasConnected = socket.connected;
     configuredToken = token;
     socket.auth = { token };
-    if (socket.active) socket.disconnect();
+    if (wasConnected) {
+      socket.disconnect();
+      socket.connect();
+      return;
+    }
   }
   if (!socket.connected) socket.connect();
 };
