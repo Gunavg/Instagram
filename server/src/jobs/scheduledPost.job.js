@@ -1,6 +1,6 @@
 import ScheduledPost from "../models/ScheduledPost.model.js";
 import ScheduledPostError from "../models/ScheduledPostError.model.js";
-import { publishScheduledPost } from "../controllers/scheduledPost.controller.js";
+import { publishScheduledPost, retryScheduledPostNotifications } from "../controllers/scheduledPost.controller.js";
 
 const MAX_ATTEMPTS = 3;
 const STALE_CLAIM_MS = 5 * 60 * 1000;
@@ -56,6 +56,10 @@ const run = async () => {
       console.error("Scheduled post publish failed:", message);
     }
   }
+
+  // Retry failed publication email notifications separately. This never creates
+  // another feed post; it only delivers mail for a post already marked published.
+  await retryScheduledPostNotifications();
 };
 
 export const startScheduledPostJob = () => {
