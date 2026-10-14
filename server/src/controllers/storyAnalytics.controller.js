@@ -245,8 +245,11 @@ export const getStoryAnalytics = async (req, res) => {
     }
 
     const storyObjectId = story._id;
+    const viewerPage = Math.max(1, Number.parseInt(req.query.page, 10) || 1);
+    const viewerLimit = Math.min(100, Math.max(1, Number.parseInt(req.query.limit, 10) || 50));
+    const viewerSkip = (viewerPage - 1) * viewerLimit;
 
-    const [counters, reactionStats, replyCount, timeline, viewers] =
+    const [counters, reactionStats, replyCount, timeline, viewers, totalViewers] =
       await Promise.all([
         updateCachedCounters(storyObjectId),
 
@@ -277,9 +280,12 @@ export const getStoryAnalytics = async (req, res) => {
 
         StoryView.find({ story: storyObjectId })
           .sort({ firstViewedAt: -1 })
-          .limit(500)
+          .skip(viewerSkip)
+          .limit(viewerLimit)
           .populate("viewer", "_id username fullName profilePicture")
           .lean(),
+
+        StoryView.countDocuments({ story: storyObjectId }),
       ]);
 
     const totalReactions = reactionStats.reduce(
@@ -312,6 +318,12 @@ export const getStoryAnalytics = async (req, res) => {
         completionRate,
         timeline,
         viewers,
+        viewerPagination: {
+          page: viewerPage,
+          limit: viewerLimit,
+          total: totalViewers,
+          pages: Math.max(1, Math.ceil(totalViewers / viewerLimit)),
+        },
       },
     });
   } catch (error) {
