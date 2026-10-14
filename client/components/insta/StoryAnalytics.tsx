@@ -478,7 +478,7 @@ export default function StoryAnalytics({
                 />
 
                 <span className="font-semibold text-ig-text">
-                  Completion Rate
+                  {t("completionRate")}
                 </span>
               </div>
 
@@ -516,13 +516,13 @@ export default function StoryAnalytics({
 
         <div className="p-5 border-t border-ig-border">
           <h3 className="font-semibold text-ig-text mb-4">
-            Reaction Breakdown
+            {t("reactionBreakdown")}
           </h3>
 
           {analytics.reactions
             .breakdown.length === 0 ? (
             <p className="text-sm text-ig-secondary">
-              No reactions yet.
+              {t("noReactions")}
             </p>
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -552,13 +552,13 @@ export default function StoryAnalytics({
 
         <div className="p-5 border-t border-ig-border">
           <h3 className="font-semibold text-ig-text mb-4">
-            View Timeline
+            {t("viewTimeline")}
           </h3>
 
           {analytics.timeline.length ===
           0 ? (
             <p className="text-sm text-ig-secondary">
-              No views yet.
+              {t("noViews")}
             </p>
           ) : (
             <div className="space-y-2">
@@ -589,7 +589,7 @@ export default function StoryAnalytics({
         <div className="p-5 border-t border-ig-border">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-ig-text">
-              Viewers
+              {t("viewers")}
             </h3>
 
             <span className="text-xs text-ig-secondary">
@@ -679,9 +679,7 @@ export default function StoryAnalytics({
 
         <div className="p-5 border-t border-ig-border">
           <p className="text-xs text-ig-secondary text-center">
-            Analytics update automatically when
-            viewers view, react, or reply to this
-            story.
+            {t("analyticsUpdateNote")}
           </p>
         </div>
       </div>
