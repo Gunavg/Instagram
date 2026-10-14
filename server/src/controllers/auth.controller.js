@@ -156,21 +156,21 @@ export const login = async (req, res) => {
       });
     }
 
-    if (context.browser === "Google Chrome") {
+    if (context.browser !== "Microsoft Edge") {
       if (!user.email) {
-        await logAttempt({ userId: user._id, context, status: "failed", failureReason: "Registered email is missing for Chrome verification" });
+        await logAttempt({ userId: user._id, context, status: "failed", failureReason: "Registered email is missing for browser verification" });
         return res.status(400).json({ success: false, message: "A registered email address is required for Chrome verification." });
       }
 
       const rateLimit = await consumeOtpRateLimit(user._id, "chrome_login", LOGIN_MAX_OTP_REQUESTS_PER_WINDOW);
       if (!rateLimit.allowed) {
-        await logAttempt({ userId: user._id, context, status: "failed", failureReason: "Too many Chrome OTP requests" });
+        await logAttempt({ userId: user._id, context, status: "failed", failureReason: "Too many browser OTP requests" });
         return res.status(429).json({ success: false, code: "OTP_RATE_LIMITED", message: "Too many verification requests. Please try again later." });
       }
 
       const existing = await LoginChallenge.findOne({ user: user._id });
       if (existing && Date.now() - existing.lastSentAt.getTime() < LOGIN_OTP_RESEND_COOLDOWN_MS) {
-        await logAttempt({ userId: user._id, context, status: "failed", failureReason: "Chrome OTP resend cooldown active" });
+        await logAttempt({ userId: user._id, context, status: "failed", failureReason: "Browser OTP resend cooldown active" });
         return res.status(429).json({ success: false, message: "Please wait before requesting another verification code." });
       }
 
@@ -196,7 +196,7 @@ export const login = async (req, res) => {
           userId: user._id,
           context,
           status: "failed",
-          failureReason: `Chrome OTP delivery failed: ${emailError.message}`,
+          failureReason: `Browser OTP delivery failed: ${emailError.message}`,
           verificationMethod: "email_otp",
         });
         throw emailError;
@@ -265,7 +265,7 @@ export const verifyLoginOtp = async (req, res) => {
       });
       return res.status(429).json({ success: false, code: "ATTEMPTS_EXCEEDED", message: "Too many failed attempts. Please log in again later." });
     }
-    if (challenge.browser !== "Google Chrome") {
+    if (challenge.browser === "Microsoft Edge") {
       await challenge.deleteOne();
       return res.status(400).json({ success: false, message: "Invalid login verification context." });
     }
@@ -317,7 +317,7 @@ export const resendLoginOtp = async (req, res) => {
   try {
     const challenge = await LoginChallenge.findOne({ user: req.body?.userId });
     if (!challenge) return res.status(400).json({ success: false, message: "No pending Chrome verification. Please log in again." });
-    if (challenge.browser !== "Google Chrome") return res.status(400).json({ success: false, message: "Invalid verification context." });
+    if (challenge.browser === "Microsoft Edge") return res.status(400).json({ success: false, message: "Invalid verification context." });
     if (challenge.resendCount >= LOGIN_MAX_RESENDS) {
       return res.status(429).json({ success: false, message: "Verification resend limit reached. Please log in again later." });
     }
