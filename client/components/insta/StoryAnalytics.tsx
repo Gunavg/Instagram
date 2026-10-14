@@ -162,6 +162,10 @@ export default function StoryAnalytics({
     fetchAnalytics();
   }, [fetchAnalytics]);
 
+  useEffect(() => {
+    setViewerPage(1);
+  }, [storyId]);
+
   /*
    * Real-time analytics.
    */
