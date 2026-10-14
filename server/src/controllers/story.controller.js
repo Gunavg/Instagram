@@ -328,20 +328,18 @@ export const getStories = async (
      * Get current user's
      * close friends.
      */
+    // For this viewer, find accounts that have added the viewer to Close Friends.
     const closeFriends =
       await CloseFriend.find({
-        owner:
-          viewerId,
+        friend: viewerId,
       })
-        .select(
-          "friend"
-        )
+        .select("owner")
         .lean();
 
     const closeFriendIds =
       closeFriends.map(
         (item) =>
-          item.friend
+          item.owner
       );
 
     /*
