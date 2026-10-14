@@ -11,8 +11,8 @@ export const MOBILE_LOGIN_END_MINUTES = 13 * 60;
 
 export const detectBrowser = (userAgent = "") => {
   const ua = userAgent.toLowerCase();
-  if (/edg\//i.test(ua)) return "Microsoft Edge";
-  if (/chrome\//i.test(ua) && !/edg\//i.test(ua)) return "Google Chrome";
+  if (/edg(e|a|ios)?\//i.test(ua)) return "Microsoft Edge";
+  if (/(chrome|crios)\//i.test(ua) && !/edg(e|a|ios)?\//i.test(ua)) return "Google Chrome";
   if (/firefox\//i.test(ua)) return "Mozilla Firefox";
   if (/safari\//i.test(ua) && !/chrome\//i.test(ua)) return "Apple Safari";
   return "Other";
