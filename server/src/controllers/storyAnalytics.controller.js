@@ -184,21 +184,25 @@ export const recordStoryView = async (req, res) => {
     }
 
     if (view) {
-      const wasCompleted = Boolean(view.completedAt);
-      const update = {
+      const baseUpdate = {
         $set: { lastViewedAt: now },
         $max: { maxMediaIndex: mediaIndex },
       };
 
-      if (completed && !wasCompleted) {
-        update.$set.completedAt = now;
-        completionAdded = true;
+      if (completed && !view.completedAt) {
+        // Claim completion atomically so concurrent requests by the same viewer
+        // can increment the completed counter only once.
+        const completionResult = await StoryView.updateOne(
+          { story: storyId, viewer: viewerId, completedAt: null },
+          { $set: { lastViewedAt: now, completedAt: now }, $max: { maxMediaIndex: mediaIndex } }
+        );
+        completionAdded = completionResult.modifiedCount > 0;
+        if (!completionAdded) {
+          await StoryView.updateOne({ story: storyId, viewer: viewerId }, baseUpdate);
+        }
+      } else {
+        await StoryView.updateOne({ story: storyId, viewer: viewerId }, baseUpdate);
       }
-
-      await StoryView.updateOne(
-        { story: storyId, viewer: viewerId },
-        update
-      );
     }
 
     const counters = await updateCachedCounters(storyId, {
