@@ -42,6 +42,6 @@ const postSchema = new mongoose.Schema(
 postSchema.index({ user: 1, createdAt: -1 });
 postSchema.index({ scheduleStatus: 1, scheduledAt: 1 });
 postSchema.index({ scheduleStatus: 1, createdAt: -1 });
-postSchema.index({ scheduledPostId: 1 }, { unique: true, partialFilterExpression: { scheduledPostId: { $type: "objectId" } }, name: "unique_published_scheduled_post" });
+postSchema.index({ scheduledPostId: 1 }, { unique: true, sparse: true, name: "unique_published_scheduled_post" });
 
 export default mongoose.model("Post", postSchema);
