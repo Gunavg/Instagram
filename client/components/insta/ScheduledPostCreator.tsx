@@ -44,9 +44,9 @@ export default function ScheduledPostCreator({ onClose, onCreated }: { onClose:(
         taggedUsernames:taggedUsers.split(/[ ,]+/).map(v=>v.replace(/^@/,"")).filter(Boolean),
         location,visibility,scheduledAt:new Date(scheduledAt).toISOString()
       });
-      toast.add({type:"success",title:r.data.message||"Post scheduled successfully"});
+      toast.add({type:"success",title:r.data.message||t("schedulePostAction")});
       onCreated();onClose();
-    }catch(e:any){toast.add({type:"error",title:e?.response?.data?.message||e?.message||"Unable to schedule post"});}
+    }catch(e:any){toast.add({type:"error",title:e?.response?.data?.message||e?.message||t("unableEditScheduled")});}
     finally{setSaving(false);}
   };
 
@@ -59,6 +59,6 @@ export default function ScheduledPostCreator({ onClose, onCreated }: { onClose:(
    <input value={taggedUsers} onChange={e=>setTaggedUsers(e.target.value)} placeholder={t("taggedUsersPlaceholder")} className="w-full border rounded-lg p-3"/>
    <input value={location} onChange={e=>setLocation(e.target.value)} placeholder={t("locationPlaceholder")} className="w-full border rounded-lg p-3"/>
    <div className="grid grid-cols-2 gap-3"><input type="datetime-local" min={min} value={scheduledAt} onChange={e=>setScheduledAt(e.target.value)} className="border rounded-lg p-3"/><select value={visibility} onChange={e=>setVisibility(e.target.value)} className="border rounded-lg p-3"><option value="public">{t("publicVisibility")}</option><option value="followers">{t("followersVisibility")}</option></select></div>
-   <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg">{t("cancel")}</button><button type="button" disabled={saving} onClick={submit} className="px-5 py-2 bg-black text-white rounded-lg disabled:opacity-50">{saving?"Uploading and scheduling…":"Schedule Post"}</button></div>
+   <div className="flex justify-end gap-2"><button type="button" onClick={onClose} className="px-4 py-2 border rounded-lg">{t("cancel")}</button><button type="button" disabled={saving} onClick={submit} className="px-5 py-2 bg-black text-white rounded-lg disabled:opacity-50">{saving?t("uploadingScheduling"):t("schedulePostAction")}</button></div>
   </div></div></div>;
 }
