@@ -120,11 +120,32 @@ export const publishScheduledPost = async (post) => {
   post.status="published";post.publishedAt=created.publishedAt;post.lastError="";post.activeSlot=undefined;
   await post.save();
   if(user?.email&&!post.notificationSentAt) {
-    try {
-      await sendScheduledPostPublishedEmail({to:user.email,userName:user.fullName,post:created});
-      post.notificationSentAt=new Date();
-      await post.save();
-    } catch(error) { console.error("Scheduled publication email failed:",error.message); }
+    await sendScheduledPostPublishedEmail({to:user.email,userName:user.fullName,post:created});
+    post.notificationSentAt=new Date();
+    await post.save();
   }
   return created;
+};
+
+export const retryScheduledPostNotifications = async () => {
+  const pending = await ScheduledPost.find({
+    status: "published",
+    notificationSentAt: null,
+    publishedAt: { $ne: null },
+  }).sort({ publishedAt: 1 }).limit(25);
+  for (const scheduled of pending) {
+    try {
+      const user = await User.findById(scheduled.user).select("email fullName").lean();
+      const PostModel = (await import("../models/Post.model.js")).default;
+      const publishedPost = await PostModel.findOne({ scheduledPostId: scheduled._id }).lean();
+      if (!user?.email || !publishedPost) continue;
+      await sendScheduledPostPublishedEmail({ to: user.email, userName: user.fullName, post: publishedPost });
+      await ScheduledPost.updateOne(
+        { _id: scheduled._id, status: "published", notificationSentAt: null },
+        { $set: { notificationSentAt: new Date(), lastError: "" } },
+      );
+    } catch (error) {
+      console.error("Scheduled publication email retry failed:", scheduled._id.toString(), String(error?.message || error));
+    }
+  }
 };
