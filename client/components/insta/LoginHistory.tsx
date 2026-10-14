@@ -18,6 +18,7 @@ type LoginHistoryItem = {
 };
 
 export default function LoginHistory() {
+  const { t } = useI18n();
   const [items, setItems] = useState<LoginHistoryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
