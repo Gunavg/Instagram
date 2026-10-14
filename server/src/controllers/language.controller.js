@@ -16,6 +16,7 @@ import {
   safeCompareOtp,
 } from "../utils/languageOtp.js";
 import { sendOtpEmail, sendOtpSms } from "../services/notification.service.js";
+import { consumeOtpRateLimit } from "../utils/otpRateLimiter.js";
 
 const getDelivery = (language, user) => {
   if (language === "fr") {
@@ -74,10 +75,9 @@ export const requestLanguageChange = async (req, res) => {
       });
     }
 
-    const since = new Date(Date.now() - REQUEST_WINDOW_MS);
-    const requestCount = await LanguageVerification.countDocuments({ user: user._id, createdAt: { $gte: since } });
-    if (requestCount >= MAX_REQUESTS_PER_WINDOW) {
-      return res.status(429).json({ success: false, message: "Too many OTP requests. Please try again later." });
+    const rateLimit = await consumeOtpRateLimit(user._id, "language_change", MAX_REQUESTS_PER_WINDOW);
+    if (!rateLimit.allowed) {
+      return res.status(429).json({ success: false, code: "OTP_RATE_LIMITED", message: "Too many OTP requests. Please try again later." });
     }
 
     const existing = await LanguageVerification.findOne({ user: user._id });
