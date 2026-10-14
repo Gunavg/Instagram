@@ -20,7 +20,7 @@ jobs:
           cache-dependency-path: server/package-lock.json
       - name: Install backend dependencies
         working-directory: server
-        run: npm ci
+        run: npm install
       - name: Check every backend JavaScript file
         working-directory: server
         run: find src -type f -name '*.js' -print0 | xargs -0 -n1 node --check
