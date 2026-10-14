@@ -1,4 +1,3 @@
-import User from "../models/User.model.js";
 import Post from "../models/Post.model.js";
 import Story from "../models/Story.model.js";
 import Subscription from "../models/Subscription.model.js";
