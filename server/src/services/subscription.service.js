@@ -33,6 +33,15 @@ export const syncSubscriptionFromStripe = async (stripeSubscription, { sendEmail
   const item = stripeSubscription.items?.data?.[0];
   const periodStart = toDate(stripeSubscription.current_period_start);
   const periodEnd = toDate(stripeSubscription.current_period_end);
+  let invoice = typeof stripeSubscription.latest_invoice === "object" ? stripeSubscription.latest_invoice : null;
+  const invoiceId = typeof stripeSubscription.latest_invoice === "string" ? stripeSubscription.latest_invoice : invoice?.id || "";
+  if (!invoice && invoiceId) {
+    try {
+      invoice = await stripe.invoices.retrieve(invoiceId);
+    } catch (invoiceError) {
+      console.error("Unable to retrieve latest subscription invoice:", invoiceError.message);
+    }
+  }
 
   const subscription = await Subscription.findOneAndUpdate(
     { user: userId },
@@ -48,6 +57,11 @@ export const syncSubscriptionFromStripe = async (stripeSubscription, { sendEmail
       currentPeriodStart: periodStart,
       currentPeriodEnd: periodEnd,
       nextRenewalDate: periodEnd,
+      latestInvoiceId: invoice?.id || invoiceId || existing?.latestInvoiceId || "",
+      latestInvoiceUrl: invoice?.hosted_invoice_url || existing?.latestInvoiceUrl || "",
+      latestPaymentIntentId: typeof invoice?.payment_intent === "string"
+        ? invoice.payment_intent
+        : invoice?.payment_intent?.id || existing?.latestPaymentIntentId || "",
       cancelAtPeriodEnd: Boolean(stripeSubscription.cancel_at_period_end),
       canceledAt: stripeSubscription.canceled_at ? toDate(stripeSubscription.canceled_at) : null,
     },
