@@ -6,7 +6,7 @@ import axiosInstance from "@/lib/axios";
 import useAuthStore from "@/store/authStore";
 import { Shield, Users, FileText, Clock, RefreshCw, Trash2, CheckCircle, Ban, MessageSquare, Flag, ChevronLeft, ChevronRight, type LucideIcon } from "lucide-react";
 
-type DashboardStats={totalUsers:number;activeUsers:number;posts:number;stories:number;subscriptions:number;reportedContent:number;scheduledPosts:number;engagement?:{likes:number;comments:number;shares:number}};
+type DashboardStats={totalUsers:number;activeUsers:number;posts:number;stories:number;subscriptions:number;reportedContent:number;scheduledPosts:number;overallEngagement?:number;engagement?:{likes:number;comments:number;shares:number}};
 type Pagination={page:number;pages:number;total:number};
 type Filters={search:string;from:string;to:string;status:string;plan:string;verified:string;visibility:string;activity:string;sort:string};
 type AdminItem={_id:string;username?:string;fullName?:string;email?:string;caption?:string;text?:string;reason?:string;action?:string;entityType?:string;plan?:string;status?:string;scheduleStatus?:string;role?:string;privacy?:string;targetType?:string;isVerified?:boolean;createdAt?:string;scheduledAt?:string;user?:{username?:string;email?:string};reporter?:{username?:string;email?:string}};
