@@ -23,6 +23,7 @@ const postSchema = new mongoose.Schema(
     visibility: { type: String, enum: ["public", "followers"], default: "public", index: true },
     scheduleStatus: { type: String, enum: ["published", "scheduled", "cancelled", "failed"], default: "published", index: true },
     scheduledAt: { type: Date, default: null, index: true },
+    scheduledPostId: { type: mongoose.Schema.Types.ObjectId, ref: "ScheduledPost", default: null, index: true },
     publishedAt: { type: Date, default: null, index: true },
     publishAttempts: { type: Number, default: 0 },
     publishError: { type: String, default: "" },
@@ -41,5 +42,6 @@ const postSchema = new mongoose.Schema(
 postSchema.index({ user: 1, createdAt: -1 });
 postSchema.index({ scheduleStatus: 1, scheduledAt: 1 });
 postSchema.index({ scheduleStatus: 1, createdAt: -1 });
+postSchema.index({ scheduledPostId: 1 }, { unique: true, sparse: true, name: "unique_published_scheduled_post" });
 
 export default mongoose.model("Post", postSchema);
