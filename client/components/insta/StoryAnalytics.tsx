@@ -14,6 +14,8 @@ import {
   CheckCircle,
   X,
   BarChart3,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 
 import { socket } from "@/lib/socket";
@@ -70,6 +72,7 @@ type Analytics = {
   timeline: TimelineItem[];
 
   viewers: Viewer[];
+  viewerPagination?: { page: number; limit: number; total: number; pages: number };
 };
 
 type AnalyticsSocketUpdate = {
@@ -107,6 +110,7 @@ export default function StoryAnalytics({
 
   const [error, setError] =
     useState("");
+  const [viewerPage, setViewerPage] = useState(1);
 
   /*
    * Fetch analytics from backend.
@@ -118,7 +122,7 @@ export default function StoryAnalytics({
 
         const response =
           await axiosInstance.get(
-            `/api/stories/${storyId}/analytics`
+            `/api/stories/${storyId}/analytics?page=${viewerPage}&limit=50`
           );
 
         if (
@@ -148,7 +152,7 @@ export default function StoryAnalytics({
         setLoading(false);
         setRefreshing(false);
       }
-    }, [storyId]);
+    }, [storyId, viewerPage]);
 
   /*
    * Initial analytics load.
