@@ -10,6 +10,7 @@ const schema=new mongoose.Schema({
  status:{type:String,enum:["scheduled","publishing","published","cancelled","failed"],default:"scheduled",index:true},
  scheduledAt:{type:Date,required:true,index:true},
  publishedAt:{type:Date,default:null},
+ notificationSentAt:{type:Date,default:null},
  attempts:{type:Number,default:0},
  lastError:{type:String,default:""},
 },{timestamps:true});
