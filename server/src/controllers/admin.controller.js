@@ -1,4 +1,5 @@
 import User from "../models/User.model.js";
+import bcrypt from "bcrypt";
 import Post from "../models/Post.model.js";
 import Story from "../models/Story.model.js";
 import Subscription from "../models/Subscription.model.js";
@@ -26,6 +27,21 @@ export const dashboard=async(req,res)=>{try{
  res.json({success:true,stats:{totalUsers,activeUsers,posts,stories,subscriptions,reportedContent,scheduledPosts,failedScheduledPosts,engagement:e,overallEngagement:e.likes+e.comments+e.shares}});
 }catch(e){res.status(500).json({success:false,message:e.message});}};
 
+export const createUser=async(req,res)=>{try{
+ const username=String(req.body.username||"").trim().toLowerCase();
+ const fullName=String(req.body.fullName||"").trim();
+ const email=String(req.body.email||"").trim().toLowerCase();
+ const password=String(req.body.password||"");
+ if(!username||!fullName||!email||password.length<8)return res.status(400).json({success:false,message:"Username, full name, email and a password of at least 8 characters are required."});
+ if(!/^[a-z0-9._]{3,30}$/.test(username))return res.status(400).json({success:false,message:"Username must be 3–30 characters and contain only letters, numbers, dots or underscores."});
+ const existing=await User.findOne({$or:[{username},{email}]});
+ if(existing)return res.status(409).json({success:false,message:"A user with that username or email already exists."});
+ const hash=await bcrypt.hash(password,12);
+ const user=await User.create({username,fullName,email,password:hash,role:req.body.role==="administrator"?"administrator":"user",status:"active",isVerified:Boolean(req.body.isVerified)});
+ await auditAdminAction({req,action:"CREATE_USER",entityType:"User",entityId:user._id,targetUser:user._id,metadata:{username:user.username,email:user.email,role:user.role}});
+ const safe=await User.findById(user._id).select("-password -refreshToken").lean();
+ res.status(201).json({success:true,user:safe});
+}catch(e){res.status(400).json({success:false,message:e.message});}};
 export const getUsers=async(req,res)=>{try{const {page,limit,skip}=pageArgs(req.query);const f={...dateFilter(req.query)};if(req.query.search){const q=regex(req.query.search);f.$or=[{username:q},{fullName:q},{email:q}];}if(req.query.status)f.status=req.query.status;if(req.query.role)f.role=req.query.role;if(req.query.verified!==undefined&&req.query.verified!=="")f.isVerified=req.query.verified==="true";if(req.query.activity==="active")f.lastActiveAt={$gte:new Date(Date.now()-30*864e5)};if(req.query.activity==="inactive")f.lastActiveAt={$lt:new Date(Date.now()-30*864e5)};if(req.query.plan){const ids=(await Subscription.find({plan:req.query.plan}).select("user").lean()).map(x=>x.user);f._id={$in:ids};}const sort=req.query.sort==="oldest"?{createdAt:1}:req.query.sort==="activity"?{lastActiveAt:-1}:{createdAt:-1};const [items,total]=await Promise.all([User.find(f).select("-password -refreshToken").sort(sort).skip(skip).limit(limit).lean(),User.countDocuments(f)]);res.json(result(items,total,page,limit));}catch(e){res.status(500).json({success:false,message:e.message});}};
 export const updateUser=async(req,res)=>{try{if(String(req.params.id)===String(req.user._id)&&req.body.role&&req.body.role!=="administrator")return res.status(400).json({success:false,message:"You cannot remove your own administrator role."});const updates={};for(const k of ["status","role","isVerified"])if(req.body[k]!==undefined)updates[k]=req.body[k];const user=await User.findByIdAndUpdate(req.params.id,updates,{new:true,runValidators:true}).select("-password -refreshToken");if(!user)return res.status(404).json({success:false,message:"User not found"});await auditAdminAction({req,action:"UPDATE_USER",entityType:"User",entityId:user._id,targetUser:user._id,metadata:updates});res.json({success:true,user});}catch(e){res.status(400).json({success:false,message:e.message});}};
 export const deleteUser=async(req,res)=>{try{if(String(req.params.id)===String(req.user._id))return res.status(400).json({success:false,message:"You cannot delete your own administrator account."});const user=await User.findByIdAndDelete(req.params.id);if(!user)return res.status(404).json({success:false,message:"User not found"});await auditAdminAction({req,action:"DELETE_USER",entityType:"User",entityId:user._id,targetUser:user._id,metadata:{username:user.username}});res.json({success:true,message:"User deleted"});}catch(e){res.status(400).json({success:false,message:e.message});}};
