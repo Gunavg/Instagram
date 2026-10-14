@@ -136,6 +136,11 @@ export const login = async (req, res) => {
       return res.status(401).json({ success: false, message: "Invalid email or password." });
     }
 
+    if (user.status && user.status !== "active") {
+      await logAttempt({ userId: user._id, context, status: "failed", failureReason: "Account is suspended or deactivated" });
+      return res.status(403).json({ success: false, code: "ACCOUNT_INACTIVE", message: "This account is suspended or deactivated. Contact support for assistance." });
+    }
+
     if (context.deviceType === "Mobile" && !isMobileLoginWindowOpen()) {
       const { hour, minute } = getServerTime();
       await logAttempt({
