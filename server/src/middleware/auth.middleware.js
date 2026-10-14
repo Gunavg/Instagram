@@ -26,6 +26,13 @@ export const protect = async (req, res, next) => {
         message: "User not found",
       });
     }
+    if (user.status && user.status !== "active") {
+      return res.status(403).json({
+        success: false,
+        code: "ACCOUNT_INACTIVE",
+        message: "This account is suspended or deactivated. Contact support for assistance.",
+      });
+    }
     req.user = user;
     next();
   } catch (error) {
