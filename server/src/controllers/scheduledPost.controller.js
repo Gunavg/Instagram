@@ -59,7 +59,9 @@ export const createScheduledPost = async (req, res) => {
     if (!Array.isArray(req.body.media) || !req.body.media.length) return res.status(400).json({ success:false, message:"At least one media item is required." });
     const allowance = await getPostAllowance(req.user._id);
     if (allowance.plan !== "free" && allowance.subscription?.status !== "active") return res.status(403).json({ success:false, code:"SUBSCRIPTION_NOT_ACTIVE", message:"Your paid subscription is not active." });
-    if (allowance.scheduled >= 2) return res.status(403).json({ success:false, code:"SCHEDULE_LIMIT_REACHED", message:"You can have a maximum of 2 scheduled posts at a time." });
+    // Recheck the effective quota from the latest database state. The unique
+    // activeSlot index below separately enforces the two-scheduled-post ceiling
+    // when simultaneous requests race.
     if (!allowance.allowed) return res.status(403).json({ success:false, code:"SCHEDULE_QUOTA_REACHED", message:"Your subscription posting quota does not allow another scheduled post.", subscription:{plan:allowance.plan,limit:allowance.limit,published:allowance.used,scheduled:allowance.scheduled} });
     const taggedUsers = req.body.taggedUsers?.length ? req.body.taggedUsers : await resolveTaggedUsers(req.body.taggedUsernames);
     const post = await createWithReservedSlot(req.user._id, {
