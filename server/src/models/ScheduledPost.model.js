@@ -1,6 +1,7 @@
 import mongoose from "mongoose";
 const schema=new mongoose.Schema({
  user:{type:mongoose.Schema.Types.ObjectId,ref:"User",required:true,index:true},
+ activeSlot:{type:Number,min:0,max:1,default:undefined},
  media:{type:Array,required:true,validate:{validator:v=>Array.isArray(v)&&v.length>0,message:"At least one media item is required."}},
  caption:{type:String,maxlength:2200,default:""},
  hashtags:[String],
@@ -16,4 +17,5 @@ const schema=new mongoose.Schema({
 },{timestamps:true});
 schema.index({user:1,status:1,scheduledAt:1});
 schema.index({status:1,scheduledAt:1});
+schema.index({user:1,activeSlot:1},{unique:true,partialFilterExpression:{activeSlot:{$exists:true}},name:"unique_active_schedule_slot"});
 export default mongoose.model("ScheduledPost",schema);
