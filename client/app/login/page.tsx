@@ -139,7 +139,7 @@ export default function LoginPage() {
         )}
         {!challengeUser && (
           <div className="mt-3 bg-ig-surface border border-ig-border rounded-sm py-4 text-center text-sm text-ig-text">
-            Don&apos;t have an account? <Link href="/signup" className="text-[#0095f6] font-semibold">{t("signUp")}</Link>
+            {t("dontHaveAccount")} <Link href="/signup" className="text-[#0095f6] font-semibold">{t("signUp")}</Link>
           </div>
         )}
       </div>
