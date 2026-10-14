@@ -20,7 +20,7 @@ const run = async () => {
   );
   await ScheduledPost.updateMany(
     { status: "publishing", updatedAt: { $lte: staleBefore }, attempts: { $gte: MAX_ATTEMPTS } },
-    { $set: { status: "failed", lastError: "Publishing worker stopped after maximum attempts." } },
+    { $set: { status: "failed", lastError: "Publishing worker stopped after maximum attempts." }, $unset: { activeSlot: 1 } },
   );
 
   const due = await ScheduledPost.find({
@@ -51,7 +51,7 @@ const run = async () => {
       }
       await ScheduledPost.updateOne(
         { _id: claimed._id, status: "publishing" },
-        { $set: { lastError: message, status: claimed.attempts >= MAX_ATTEMPTS ? "failed" : "scheduled" } },
+        { $set: { lastError: message, status: claimed.attempts >= MAX_ATTEMPTS ? "failed" : "scheduled" }, ...(claimed.attempts >= MAX_ATTEMPTS ? { $unset: { activeSlot: 1 } } : {}) },
       );
       console.error("Scheduled post publish failed:", message);
     }
