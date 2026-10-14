@@ -6,6 +6,7 @@ import ScheduledPostCreator from "@/components/insta/ScheduledPostCreator";
 import { useI18n } from "@/lib/i18n";
 
 export default function ScheduledPostsPage(){
+ const {t}=useI18n();
  const [posts,setPosts]=useState<any[]>([]);const [loading,setLoading]=useState(true);const [editing,setEditing]=useState<any>(null);const [creating,setCreating]=useState(false);const [form,setForm]=useState({scheduledAt:"",caption:"",location:"",hashtags:"",taggedUsernames:"",visibility:"public"});
  const load=async()=>{setLoading(true);try{const r=await axiosInstance.get("/api/scheduled-posts");setPosts(r.data.posts||[])}catch(e){console.error(e)}finally{setLoading(false)}};
  useEffect(()=>{void load()},[]);
