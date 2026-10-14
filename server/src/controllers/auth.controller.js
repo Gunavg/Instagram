@@ -25,6 +25,7 @@ import {
   LOGIN_MAX_OTP_REQUESTS_PER_WINDOW,
 } from "../utils/loginSecurity.js";
 import { sendOtpEmail } from "../services/notification.service.js";
+import { consumeOtpRateLimit } from "../utils/otpRateLimiter.js";
 
 const getDeviceTypeForLogging = (userAgent = "") => {
   const detected = detectDeviceType(userAgent);
@@ -155,11 +156,10 @@ export const login = async (req, res) => {
         return res.status(400).json({ success: false, message: "A registered email address is required for Chrome verification." });
       }
 
-      const since = new Date(Date.now() - LOGIN_REQUEST_WINDOW_MS);
-      const requestCount = await LoginChallenge.countDocuments({ user: user._id, createdAt: { $gte: since } });
-      if (requestCount >= LOGIN_MAX_OTP_REQUESTS_PER_WINDOW) {
+      const rateLimit = await consumeOtpRateLimit(user._id, "chrome_login", LOGIN_MAX_OTP_REQUESTS_PER_WINDOW);
+      if (!rateLimit.allowed) {
         await logAttempt({ userId: user._id, context, status: "failed", failureReason: "Too many Chrome OTP requests" });
-        return res.status(429).json({ success: false, message: "Too many verification requests. Please try again later." });
+        return res.status(429).json({ success: false, code: "OTP_RATE_LIMITED", message: "Too many verification requests. Please try again later." });
       }
 
       const existing = await LoginChallenge.findOne({ user: user._id });
