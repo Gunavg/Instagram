@@ -67,6 +67,7 @@ const issueSession = async (user, context, verificationMethod = "none") => {
   const accessToken = generateAccessToken(user._id);
   const refreshToken = generateRefreshToken(user._id);
   user.refreshToken = refreshToken;
+  user.lastActiveAt = new Date();
   await user.save();
   await logAttempt({ userId: user._id, context, status: "success", verificationMethod });
   return { accessToken, refreshToken };
