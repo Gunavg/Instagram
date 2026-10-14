@@ -652,6 +652,21 @@ export default function StoryAnalytics({
               )}
             </div>
           )}
+          {analytics.viewerPagination && analytics.viewerPagination.total > analytics.viewerPagination.limit && (
+            <div className="mt-5 flex items-center justify-between gap-3 border-t border-ig-border pt-4">
+              <span className="text-xs text-ig-secondary">
+                {t("page")} {analytics.viewerPagination.page} {t("of")} {analytics.viewerPagination.pages} · {analytics.viewerPagination.total} {t("viewers")}
+              </span>
+              <div className="flex gap-2">
+                <button type="button" disabled={viewerPage <= 1 || refreshing} onClick={() => setViewerPage(page => Math.max(1, page - 1))} className="p-2 border border-ig-border rounded-lg disabled:opacity-40" aria-label={t("previousPage")}>
+                  <ChevronLeft size={16}/>
+                </button>
+                <button type="button" disabled={viewerPage >= analytics.viewerPagination.pages || refreshing} onClick={() => setViewerPage(page => Math.min(analytics.viewerPagination!.pages, page + 1))} className="p-2 border border-ig-border rounded-lg disabled:opacity-40" aria-label={t("nextPage")}>
+                  <ChevronRight size={16}/>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* =================================================
