@@ -43,8 +43,8 @@ export const initSocket=(server)=>{
     io.to(String(conversationId)).emit("receive-message",populated);
    }catch(error){console.error("Socket message error:",error.message);}
   });
-  socket.on("typing",async({conversationId})=>{if(conversationId)socket.to(String(conversationId)).emit("typing",socket.data.userId);});
-  socket.on("stop-typing",async({conversationId})=>{if(conversationId)socket.to(String(conversationId)).emit("stop-typing",socket.data.userId);});
+  socket.on("typing",async({conversationId})=>{try{if(!conversationId)return;const conv=await Conversation.findById(conversationId).select("participants users members").lean();if(!conv)return;const ids=[...(conv.participants||[]),...(conv.users||[]),...(conv.members||[])].map(x=>String(x?._id||x));if(ids.includes(socket.data.userId))socket.to(String(conversationId)).emit("typing",socket.data.userId);}catch(e){console.error("Typing event failed:",e.message);}});
+  socket.on("stop-typing",async({conversationId})=>{try{if(!conversationId)return;const conv=await Conversation.findById(conversationId).select("participants users members").lean();if(!conv)return;const ids=[...(conv.participants||[]),...(conv.users||[]),...(conv.members||[])].map(x=>String(x?._id||x));if(ids.includes(socket.data.userId))socket.to(String(conversationId)).emit("stop-typing",socket.data.userId);}catch(e){console.error("Stop-typing event failed:",e.message);}});
   socket.on("disconnect",()=>console.log("Disconnected:",socket.id));
  });
 };
