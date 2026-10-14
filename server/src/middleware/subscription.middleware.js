@@ -23,8 +23,7 @@ export const getPostAllowance = async (userId) => {
   const used = await Post.countDocuments(postFilter);
   const scheduled = await ScheduledPost.countDocuments({
     user: userId,
-    status: "scheduled",
-    scheduledAt: { $gt: new Date() },
+    status: { $in: ["scheduled", "publishing"] },
   });
   const effectiveUsed = used + scheduled;
   const allowed = limit === Infinity || effectiveUsed < limit;
