@@ -1,7 +1,7 @@
 import express from "express";
 import { requireAdmin } from "../middleware/admin.middleware.js";
 import { getUsers,createUser,updateUser,deleteUser,getPosts,updatePost,deletePost,getStories,updateStory,deleteStory,getSubscriptions,updateSubscription,getScheduledPosts,getAuditLogs,getScheduledPostErrors } from "../controllers/admin.controller.js";
-import { dashboard,getUsersAdvanced,getPostsAdvanced,getComments,createAdminComment,updateComment,deleteComment,getReports,updateReport,deleteReport } from "../controllers/adminExtras.controller.js";
+import { getComments,createAdminComment,updateComment,deleteComment,getReports,updateReport,deleteReport } from "../controllers/adminExtras.controller.js";
 
 const r=express.Router();
 r.use(...requireAdmin);
