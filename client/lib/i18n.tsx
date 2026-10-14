@@ -145,7 +145,7 @@ const en: Dictionary = {
   password:"Password",
   login:"Log in",
   signUp:"Sign up",
-  loginFailed:"Unable to complete login right now."
+  loginFailed:"Unable to complete login right now.",
   shares:"Shares",
   auditLogs:"Audit Logs",
   reports:"Reports",
