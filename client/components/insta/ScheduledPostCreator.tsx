@@ -9,6 +9,7 @@ import { useI18n } from "@/lib/i18n";
 type MediaItem = { url: string; publicId?: string; type: "image" | "video"; width?: number; height?: number; duration?: number };
 
 export default function ScheduledPostCreator({ onClose, onCreated }: { onClose:()=>void; onCreated:()=>void }) {
+  const { t } = useI18n();
   const [file,setFile]=useState<File|null>(null);
   const [preview,setPreview]=useState("");
   const [caption,setCaption]=useState("");
