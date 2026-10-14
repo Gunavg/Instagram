@@ -18,7 +18,7 @@ export const dashboard=async(req,res)=>{try{
  const [totalUsers,activeUsers,posts,stories,subscriptions,reportedContent,scheduledPosts,failedScheduledPosts,engagement]=await Promise.all([
   User.countDocuments(),User.countDocuments({status:"active",lastActiveAt:{$gte:activeSince}}),
   Post.countDocuments({isDeleted:false,scheduleStatus:"published"}),Story.countDocuments({status:{$in:["active","archived"]}}),
-  Subscription.countDocuments({status:"active"}),Report.countDocuments({status:{$in:["pending","reviewed","resolved","rejected"]}}),
+  Subscription.countDocuments(),Report.countDocuments({status:{$in:["pending","reviewed","resolved","rejected"]}}),
   ScheduledPost.countDocuments({status:"scheduled"}),ScheduledPost.countDocuments({status:"failed"}),
   Post.aggregate([{$match:{isDeleted:false,scheduleStatus:"published"}},{$group:{_id:null,likes:{$sum:"$likesCount"},comments:{$sum:"$commentsCount"},shares:{$sum:"$sharesCount"}}}])
  ]);
